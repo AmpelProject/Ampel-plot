@@ -15,7 +15,6 @@ from cairosvg import svg2png
 from IPython.display import Image
 from ampel.protocol.LoggerProtocol import LoggerProtocol
 from ampel.content.SVGRecord import SVGRecord
-from ampel.log.AmpelLogger import AmpelLogger
 from ampel.model.PlotProperties import PlotProperties
 from matplotlib.figure import Figure
 
@@ -99,7 +98,7 @@ def mplfig_to_svg_dict1(
 	:param extra: required if file_name of title in PlotProperties use a format string ("such_%s_this")
 	"""
 
-	svg_doc = cls.mplfig_to_svg_dict(
+	svg_doc = mplfig_to_svg_dict(
 		mpl_fig,
 		file_name = props.get_file_name(extra=extra),
 		title = props.get_title(extra=extra),
@@ -114,7 +113,7 @@ def mplfig_to_svg_dict1(
 
 	if props.disk_save:
 		file_name = props.get_file_name(extra=extra)
-		if logger and isinstance(logger, AmpelLogger) and logger.verbose > 1:
+		if logger and getattr(logger, "verbose", 0) > 1:
 			logger.debug("Saving %s/%s" % (props.disk_save, file_name))
 		with open("%s/%s" % (props.disk_save, file_name), "w") as f:
 			f.write(
@@ -209,7 +208,7 @@ def rescale(svg: str, scale: float = 1.0) -> str:
 	scaled.append(svg_st)
 
 	return str(scaled.to_str(), "utf-8")
-	#return scaled.to_str()
+	# return scaled.to_str()
 
 
 def to_png(content: str, dpi: int = 96) -> str:
