@@ -94,20 +94,20 @@ class SVGBrowser:
 		display(HTML("Done"))
 
 
-	def show_inline(self, scale: Optional[float] = None, png_convert: bool = False):
+	def show_inline(self, scale: Optional[float] = None, png_convert: bool = False, inter_padding: int = 0):
 
+		html = ""
 		for stock_id in self._svg_loader._plots:
-
-			display(
-				HTML(
-					self._svg_loader._plots[stock_id]._repr_html_(
-						scale = scale,
-						title_prefix=stock_id,
-						png_convert = png_convert,
-						#flexbox_wrap=not self.global_flex_box
-					)
-				)
+			html += "<div>"
+			html += self._svg_loader._plots[stock_id]._repr_html_(
+				scale = scale,
+				title_prefix = stock_id,
+				png_convert = png_convert,
+				inter_padding = inter_padding
 			)
+			html += "</div>"
+
+		display(HTML(html))
 
 
 	@staticmethod
