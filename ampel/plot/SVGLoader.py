@@ -7,7 +7,7 @@
 # Last Modified Date: 10.03.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-from typing import Optional, Sequence, Union, Dict
+from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
 from collections import defaultdict
 
 from ampel.type import StockId, UnitId, Tag, List
@@ -16,6 +16,9 @@ from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.plot.T2SVGQuery import T2SVGQuery
 from ampel.plot.SVGCollection import SVGCollection
+
+if TYPE_CHECKING:
+	from ampel.plot.SVGBrowser import SVGBrowser
 
 
 class SVGLoader:
@@ -42,8 +45,8 @@ class SVGLoader:
 			config = t2_config
 		)
 
-		sl = SVGLoader(db = db, queries=[t0_query, t2_query])
-		sl.load_plots()
+		sl = SVGLoader(db=db, queries=[t0_query, t2_query])
+		sl.run()
 
 		return sl
 
@@ -57,11 +60,17 @@ class SVGLoader:
 				self.add_query(q)
 
 
-	def add_query(self, query: SVGQuery) -> None:
+	def add_query(self, query: SVGQuery) -> "SVGLoader":
 		self._queries.append(query)
+		return self
 
 
-	def load_plots(self) -> None:
+	def spawn_browser(self) -> "SVGBrowser":
+		from ampel.plot.SVGBrowser import SVGBrowser
+		return SVGBrowser(self)
+
+
+	def run(self) -> "SVGLoader":
 
 		for q in self._queries:
 			if q.path == "plots": # root
@@ -79,6 +88,9 @@ class SVGLoader:
 								if isinstance(ell, dict) and "plots" in ell:
 									self._load_plots(q, el['stock'], ell['plots'])
 
+		return self
+
+
 	def _load_plots(self,
 		query: SVGQuery, stock: StockId, plots: Sequence[SVGRecord]
 	) -> None:
@@ -92,9 +104,9 @@ class SVGLoader:
 					elif isinstance(p['tag'], (int, str)) and p['tag'] not in query.tags:
 						continue
 				else:
-					if isinstance(p['tag'], list) and query.tag not in p['tag']:
+					if isinstance(p['tag'], list) and query.tags not in p['tag']:
 						continue
-					elif isinstance(p['tag'], (int, str)) and query.tag != p['tag']:
+					elif isinstance(p['tag'], (int, str)) and query.tags != p['tag']:
 						continue
 
 			self._plots[stock].add_raw_db_dict(p)
