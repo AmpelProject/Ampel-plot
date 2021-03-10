@@ -7,24 +7,24 @@
 # Last Modified Date: 09.02.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-# type: ignore[import]
-
-from typing import Dict, Any, Optional, List
-from ampel.plot.SVGUtils import SVGUtils
+from typing import Optional, List
+from ampel.plot.utils import decompress_svg_dict
 from ampel.plot.SVGPlot import SVGPlot
+from ampel.content.SVGRecord import SVGRecord
+
 
 class SVGCollection:
 
 	def __init__(self,
 		title: str = None, scale: float = 1.0,
 		inter_padding: int = 100, center: bool = True
-	):
+	) -> None:
 		"""
 		:param title: title of this collection
 		:param scale: scale factor for all SVGs (default: 1.0)
 		:param inter_padding: sets padding in px between plots of this collection
 		"""
-		self._svgs = []
+		self._svgs: List[SVGPlot] = []
 		self._col_title = title
 		self._scale = scale
 		self._inter_padding = inter_padding
@@ -38,7 +38,7 @@ class SVGCollection:
 		if self._scale == scale:
 			return
 		for el in self._svgs:
-			el._content = SVGUtils.rescale(el._content, scale)
+			el.rescale(scale)
 		self._scale = scale
 
 
@@ -57,27 +57,25 @@ class SVGCollection:
 		self._svgs.append(svgp)
 
 
-	def add_svg_dict(self, svg_dict: Dict[str, Any], title_left_padding: int = 0) -> None:
+	def add_svg_dict(self, svg_dict: SVGRecord, title_left_padding: int = 0) -> None:
 		"""
 		:param Dict svg_dict:
 		:param int title_left_padding:
 		"""
 		self._svgs.append(
 			SVGPlot(
-				content = svg_dict['svg'],
-				title = svg_dict['title'],
-				tags = svg_dict['tag'],
+				content = svg_dict,
 				title_left_padding = title_left_padding
 			)
 		)
 
 
-	def add_raw_db_dict(self, svg_dict: Dict[str, Any]) -> None:
+	def add_raw_db_dict(self, svg_dict: SVGRecord) -> None:
 		"""
 		:param Dict svg_dict: raw svg dict loaded from DB
 		"""
 		self.add_svg_dict(
-			SVGUtils.decompress_svg_dict(svg_dict)
+			decompress_svg_dict(svg_dict)
 		)
 
 
@@ -86,7 +84,7 @@ class SVGCollection:
 		if tag:
 			return [svg for svg in self._svgs if svg.has_tag(tag)]
 		if tags:
-			return [svg for svg in self._svgs if svg.has_tags(tag)]
+			return [svg for svg in self._svgs if svg.has_tags(tags)]
 
 		return self._svgs
 
@@ -96,7 +94,7 @@ class SVGCollection:
 		title_prefix: Optional[str] = None, show_svg_titles: bool = True,
 		hide_if_empty: bool = True, png_convert: bool = False,
 		flexbox_wrap: bool = True
-	) -> str:
+	) -> Optional[str]:
 		"""
 		:param scale: if None, native scaling is used
 		"""
@@ -105,7 +103,7 @@ class SVGCollection:
 			return None
 
 		html = "<center>" if self._center else ""
-		#html += '<hr style="width:100%; border: 2px solid;"/>'
+		# html += '<hr style="width:100%; border: 2px solid;"/>'
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title + '</h1>'

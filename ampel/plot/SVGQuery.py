@@ -4,56 +4,55 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.06.2019
-# Last Modified Date: 03.02.2021
+# Last Modified Date: 10.03.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
+from typing import Literal, Optional, Sequence, Dict, Any, Union
+from ampel.type import StockId, Tag
 
 class SVGQuery:
 
-	def __init__(
-		self, col="t0", plot_path='plots',
-		stock_id=None, plot_tag=None, plot_tags=None
-	):
+	_query: Dict[str, Any]
+	col: Literal["t0", "t1", "t2", "t3"]
+	path: str
+	tags: Optional[Union[Tag, Sequence[Tag]]]
 
+	def __init__(self,
+		col: Literal["t0", "t1", "t2", "t3"],
+		path: str = 'plots',
+		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
+		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
+	):
 		self._query = {}
-		self.tag = None
 		self.tags = None
-		self.plot_path = plot_path
+		self.path = path
 		self.col = col
 
-		if stock_id:
-			self.set_stock_id(stock_id)
+		if stocks:
+			self.set_stocks(stocks)
 
-		if plot_tag:
-			self.set_plot_tag(plot_tag)
-
-		if plot_tags:
-			self.set_plot_tags(plot_tags)
+		if tags:
+			self.set_tags(tags)
 
 
-	def get_query(self):
+	def get_query(self) -> Dict[str, Any]:
 		return self._query
 
 
-	def set_stock_id(self, stock_id):
+	def set_stocks(self, stocks: Union[StockId, Sequence[StockId]]) -> None:
 
-		if isinstance(stock_id, (list, tuple)):
-			self._query['stock'] = {'$in': stock_id}
+		if isinstance(stocks, (list, tuple)):
+			self._query['stock'] = {'$in': stocks}
 		else:
-			self._query['stock'] = stock_id
+			self._query['stock'] = stocks
 
 
-	def set_plot_tag(self, tag):
-		self.tag = tag
-		self._query[self.plot_path + ".tags"] = tag
-
-
-	def set_plot_tags(self, tags):
+	def set_tags(self, tags: Union[Tag, Sequence[Tag]]) -> None:
 		self.tags = tags
-		self._query[self.plot_path + ".tags"] = {'$all': tags}
+		self._query[self.path + ".tag"] = {'$all': tags} if isinstance(tags, (list, tuple)) else tags
 
 
-	def set_query_parameter(self, name, value, overwrite=False):
+	def set_query_parameter(self, name: str, value: Any, overwrite: bool = False) -> None:
 		"""
 		For example:
 		set_query_parameter(

@@ -7,8 +7,7 @@
 # Last Modified Date: 13.01.2020
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-# type: ignore[import]
-
+from typing import Optional
 from ampel.plot.SVGLoader import SVGLoader
 from IPython.display import HTML, display
 import random
@@ -34,7 +33,7 @@ class SVGBrowser:
 
 	def show_single_window(
 		self, scale=None, append_tran_name=True,
-		win_title="Ampel plots", tran_ids=None,
+		win_title="Ampel plots", stock_ids=None,
 		png_convert=False, multiproc=0,
 		global_flex_box=False
 	):
@@ -54,11 +53,11 @@ class SVGBrowser:
 
 			with ProcessPoolExecutor(max_workers=multiproc) as executor:
 
-				for tran_id in self._svg_loader._plots.keys():
+				for stock_id in self._svg_loader._plots.keys():
 					futures.append(
 						executor.submit(
 							get_html,
-							tran_id,
+							stock_id,
 							self._svg_loader._data_query,
 							self._svg_loader._t2_query,
 							scale,
@@ -70,29 +69,45 @@ class SVGBrowser:
 				for future in futures:
 					SVGBrowser._write_to_dom(
 						dom_id, future.result(),
-						'Adding %s info to %s<br>' % (tran_id, win_title)
+						'Adding %s info to %s<br>' % (stock_id, win_title)
 					)
 		else:
 
-			for tran_id in self._svg_loader._plots:
+			for stock_id in self._svg_loader._plots:
 
-				if tran_ids:
-					if self._svg_loader._plots[tran_id] not in tran_ids:
+				if stock_ids:
+					if self._svg_loader._plots[stock_id] not in stock_ids:
 						continue
 
 				SVGBrowser._write_to_dom(
 					dom_id,
-					self._svg_loader._plots[tran_id]._repr_html_(
+					self._svg_loader._plots[stock_id]._repr_html_(
 						scale=scale,
-						title_prefix=tran_id,
+						title_prefix=stock_id,
 						png_convert=png_convert,
 						flexbox_wrap=not global_flex_box
 					),
-					'Adding %s info to %s<br>' % (tran_id, win_title)
+					'Adding %s info to %s<br>' % (stock_id, win_title)
 				)
 
 
 		display(HTML("Done"))
+
+
+	def show_inline(self, scale: Optional[float] = None, png_convert: bool = False):
+
+		for stock_id in self._svg_loader._plots:
+
+			display(
+				HTML(
+					self._svg_loader._plots[stock_id]._repr_html_(
+						scale = scale,
+						title_prefix=stock_id,
+						png_convert = png_convert,
+						#flexbox_wrap=not self.global_flex_box
+					)
+				)
+			)
 
 
 	@staticmethod
@@ -126,7 +141,7 @@ class SVGBrowser:
 			HTML(
 				'%s<script type="text/Javascript"> \
 					%s.innerHTML += \'%s\';' \
-					#%s.document.body.innerHTML += \'%s\';' \
+					# %s.document.body.innerHTML += \'%s\';' \
 				'</script>' % (
 					feedback,
 					js_body_var_name,
@@ -165,7 +180,7 @@ class SVGBrowser:
 
 
 def get_html(
-	tran_id, data_query, t2_query, scale=1.0,
+	stock_id, data_query, t2_query, scale=1.0,
 	png_convert=False, flexbox_wrap_svg_col=True
 ):
 
@@ -174,9 +189,9 @@ def get_html(
 	svg_loader._t2_query = t2_query
 	svg_loader.load_plots()
 
-	return svg_loader._plots[tran_id]._repr_html_(
+	return svg_loader._plots[stock_id]._repr_html_(
 		scale=scale,
-		title_prefix=tran_id,
+		title_prefix=stock_id,
 		png_convert=png_convert,
 		flexbox_wrap=flexbox_wrap_svg_col
 	)

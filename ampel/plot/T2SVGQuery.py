@@ -7,37 +7,40 @@
 # Last Modified Date: 15.06.2019
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-# type: ignore[import]
+from typing import Optional, Union, Sequence
+from ampel.type import UnitId, StockId, Tag
 from ampel.plot.SVGQuery import SVGQuery
 
 
 class T2SVGQuery(SVGQuery):
 
-	def __init__(
-		self, col="t2", tran_id=None, plot_tag=None, plot_tags=None,
-		t2_class_name=None, t2_run_config=None
+	def __init__(self,
+		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
+		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
+		unit: Optional[UnitId] = None,
+		config: Optional[int] = None
 	):
 		""" """
 
 		super().__init__(
-			plot_path='body.output.plots',
-			tran_id=tran_id,
-			plot_tag=plot_tag,
-			plot_tags=plot_tags
+			path = 'body.result.plots',
+			col = "t2",
+			stocks = stocks,
+			tags = tags
 		)
 
-		self.col = col
+		if unit:
+			self.set_t2_unit(unit)
 
-		if t2_class_name:
-			self.set_t2_class_name(t2_class_name)
+		if config:
+			self.set_t2_config(config)
 
-		if t2_run_config:
-			self.set_t2_run_config(t2_run_config)
-
-
-	def set_t2_class_name(self, t2_class_name):
-		self._query['unit'] = t2_class_name
+		self._query[self.path] = {'$exists': True}
 
 
-	def set_t2_config(self, run_config_name):
-		self._query['config'] = run_config_name
+	def set_t2_unit(self, unit: UnitId) -> None:
+		self._query['unit'] = unit
+
+
+	def set_t2_config(self, config: int) -> None:
+		self._query['config'] = config
