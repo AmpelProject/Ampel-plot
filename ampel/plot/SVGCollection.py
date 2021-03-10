@@ -92,7 +92,9 @@ class SVGCollection:
 	def _repr_html_(
 		self, scale: Optional[float] = None, show_col_title: bool = True,
 		title_prefix: Optional[str] = None, show_svg_titles: bool = True,
-		hide_if_empty: bool = True, png_convert: bool = False,
+		hide_if_empty: bool = True,
+		png_convert: bool = False,
+		inter_padding: Optional[int] = None,
 		flexbox_wrap: bool = True
 	) -> Optional[str]:
 		"""
@@ -121,7 +123,7 @@ class SVGCollection:
 				scale = scale,
 				show_title = show_svg_titles,
 				title_prefix = title_prefix,
-				padding_bottom = self._inter_padding,
+				padding_bottom = self._inter_padding if inter_padding is None else inter_padding,
 				png_convert = png_convert
 			)
 
