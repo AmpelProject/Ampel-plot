@@ -23,7 +23,7 @@ setup(
 	},
 	install_requires = [
 		"matplotlib",
-		"svgutils",
+		"svgutils==0.3.0",
 		"cairosvg"
 	]
 )
