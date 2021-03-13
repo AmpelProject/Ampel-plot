@@ -55,8 +55,8 @@ class PlotProperties(StrictModel):
 	will create a file called /tmp/ZTF27dpytkhq_salt2.svg for a transient with internal id 274878346346.
 	The plot title will be "ZTF27dpytkhq Ned based lightcurve fit".
 
-	Note that it is up to the class using PlotSaveOptions to make sure that
-	the right argument is passed to the methods get_file_name() get_title.
+	Note that it is up to the class using PlotProperties to make sure that
+	the right arguments are passed to the methods get_file_name() or get_title().
 	For example, if arg_keys = ["stock", "model"] (FormatModel),
 	then {'stock': 123, 'model': 'salt'} must be passed as argument.
 
