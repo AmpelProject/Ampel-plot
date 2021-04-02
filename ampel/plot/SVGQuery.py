@@ -8,7 +8,7 @@
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Literal, Optional, Sequence, Dict, Any, Union
-from ampel.type import StockId, Tag
+from ampel.type import StockId, Tag, UnitId
 
 class SVGQuery:
 
@@ -20,6 +20,8 @@ class SVGQuery:
 	def __init__(self,
 		col: Literal["t0", "t1", "t2", "t3"],
 		path: str = 'plots',
+		unit: Optional[UnitId] = None,
+		config: Optional[int] = None,
 		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
 		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
 	):
@@ -33,6 +35,13 @@ class SVGQuery:
 
 		if tags:
 			self.set_tags(tags)
+
+		if unit:
+			self._query['unit'] = unit
+
+		if config:
+			self._query['config'] = unit
+
 
 
 	def get_query(self) -> Dict[str, Any]:
