@@ -8,7 +8,7 @@
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Union, TypedDict, Sequence
-from ampel.type import Tag
+from ampel.types import Tag
 
 
 class SVGRecord(TypedDict, total=False):
@@ -18,6 +18,5 @@ class SVGRecord(TypedDict, total=False):
 	name: str
 	tag: Union[Tag, Sequence[Tag]]
 	title: str
-	compressed: bool
-	svg: Union[bytes, str]
+	svg: Union[bytes, str] # bytes means compressed svg
 	svg_str: str
