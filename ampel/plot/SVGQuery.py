@@ -4,11 +4,11 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.06.2019
-# Last Modified Date: 10.03.2021
+# Last Modified Date: 29.06.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Literal, Optional, Sequence, Dict, Any, Union
-from ampel.type import StockId, Tag, UnitId
+from ampel.types import StockId, Tag, UnitId
 
 class SVGQuery:
 
@@ -19,7 +19,7 @@ class SVGQuery:
 
 	def __init__(self,
 		col: Literal["t0", "t1", "t2", "t3"],
-		path: str = 'plots',
+		path: str = 'body.data.plots',
 		unit: Optional[UnitId] = None,
 		config: Optional[int] = None,
 		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
@@ -41,7 +41,6 @@ class SVGQuery:
 
 		if config:
 			self._query['config'] = unit
-
 
 
 	def get_query(self) -> Dict[str, Any]:
