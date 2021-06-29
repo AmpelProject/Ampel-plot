@@ -4,14 +4,14 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 10.03.2021
+# Last Modified Date: 29.06.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
 from collections import defaultdict
 
-from ampel.type import StockId, UnitId, Tag, List
-from ampel.db.AmpelDB import AmpelDB
+from ampel.types import StockId, UnitId, Tag, List, Any
+from ampel.core.AmpelDB import AmpelDB
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.plot.T2SVGQuery import T2SVGQuery
@@ -76,19 +76,25 @@ class SVGLoader:
 			if q.path == "plots": # root
 				for el in self._db.get_collection(q.col).find(q._query):
 					self._load_plots(q, el['stock'], el['plots'])
-			elif q.path == "body.result.plots": # t2
+			elif q.path == "body.data.plots": # convention
 				for el in self._db.get_collection(q.col).find(q._query):
-					if 'result' in el['body'][-1]:
-						if isinstance(el['body'][-1]['result'], dict):
-							self._load_plots(
-								q, el['stock'], el['body'][-1]['result']['plots']
-							)
-						elif isinstance(el['body'][-1]['result'], list):
-							for ell in el['body'][-1]['result']:
-								if isinstance(ell, dict) and "plots" in ell:
-									self._load_plots(q, el['stock'], ell['plots'])
+					if isinstance(el['body'], list): # t2
+						self._load_body_el(q, el['stock'], el['body'][-1])
+					if isinstance(el['body'], dict): # t3
+						self._load_body_el(q, el['stock'], el['body'])
 
 		return self
+
+
+	def _load_body_el(self, q: SVGQuery, stock: StockId, arg: Any, k: str = 'data') -> None:
+		if isinstance(stock, list):
+			stock = tuple(stock)
+		if isinstance(arg[k], dict):
+			self._load_plots(q, stock, arg[k]['plots'])
+		elif isinstance(arg[k], list):
+			for el in arg[k]:
+				if isinstance(el, dict) and "plots" in el:
+					self._load_plots(q, stock, el['plots'])
 
 
 	def _load_plots(self,
