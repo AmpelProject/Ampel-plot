@@ -8,7 +8,7 @@
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import List, Optional, Dict, Any, Type, Union
-from ampel.type import StockId
+from ampel.types import StockId
 from ampel.model.StrictModel import StrictModel
 from ampel.abstract.AbsIdMapper import AbsIdMapper
 from ampel.base.AuxUnitRegister import AuxUnitRegister

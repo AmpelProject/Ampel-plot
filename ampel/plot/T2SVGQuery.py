@@ -8,7 +8,7 @@
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Union, Sequence
-from ampel.type import UnitId, StockId, Tag
+from ampel.types import UnitId, StockId, Tag
 from ampel.plot.SVGQuery import SVGQuery
 
 

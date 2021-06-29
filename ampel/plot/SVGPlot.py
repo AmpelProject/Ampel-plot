@@ -8,7 +8,7 @@
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence
-from ampel.type import Tag
+from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.utils import rescale, to_png, decompress_svg_dict
 
