@@ -18,16 +18,11 @@ class T2SVGQuery(SVGQuery):
 		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
 		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
 		unit: Optional[UnitId] = None,
-		config: Optional[int] = None
+		config: Optional[int] = None,
+		query_path: str = 'body.data.plots' # convention
 	):
-		""" """
 
-		super().__init__(
-			path = 'body.result.plots',
-			col = "t2",
-			stocks = stocks,
-			tags = tags
-		)
+		super().__init__(path = query_path, col = "t2", stocks = stocks, tags = tags)
 
 		if unit:
 			self.set_t2_unit(unit)
