@@ -4,24 +4,32 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 13.01.2020
+# Last Modified Date: 29.06.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-from typing import Optional
+from typing import Optional, Any
 from ampel.plot.SVGLoader import SVGLoader
 from IPython.display import HTML, display
 import random
+
 
 class SVGBrowser:
 	"""
 	Alpha state, untested
 	"""
 
-	def __init__(self, svg_loader, scale=None, show_col_title=True, show_svg_titles=True):
+	def __init__(self,
+		svg_loader: SVGLoader,
+		scale: Optional[float] = None,
+		show_col_title: bool = True,
+		show_svg_titles: bool = True,
+		show_multi_stock: bool = False
+	):
 		self._scale = scale
 		self._svg_loader = svg_loader
 		self._show_col_title = show_col_title
 		self._show_svg_titles = show_svg_titles
+		self._show_multi_stock = show_multi_stock
 
 
 	def show_multi_window(self):
@@ -83,7 +91,7 @@ class SVGBrowser:
 					dom_id,
 					self._svg_loader._plots[stock_id]._repr_html_(
 						scale=scale,
-						title_prefix=stock_id,
+						title_prefix = self._get_title_prefix(stock_id),
 						png_convert=png_convert,
 						flexbox_wrap=not global_flex_box
 					),
@@ -94,6 +102,12 @@ class SVGBrowser:
 		display(HTML("Done"))
 
 
+	def _get_title_prefix(self, stock_id: Any) -> Any:
+		if isinstance(stock_id, tuple) and not self._show_multi_stock:
+			return ""
+		return stock_id
+
+
 	def show_inline(self, scale: Optional[float] = None, png_convert: bool = False, inter_padding: int = 0):
 
 		html = ""
@@ -101,7 +115,7 @@ class SVGBrowser:
 			html += "<div>"
 			html += self._svg_loader._plots[stock_id]._repr_html_(
 				scale = scale,
-				title_prefix = stock_id,
+				title_prefix = self._get_title_prefix(stock_id),
 				png_convert = png_convert,
 				inter_padding = inter_padding
 			)
