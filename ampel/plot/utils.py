@@ -4,19 +4,22 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 17.05.2019
-# Last Modified Date: 02.04.2021
+# Last Modified Date: 29.06.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import warnings
-import zipfile, io, base64
+import io, base64
 import matplotlib as plt
-from typing import Optional, List, Dict, Any
 from cairosvg import svg2png
 from IPython.display import Image
-from ampel.protocol.LoggerProtocol import LoggerProtocol
-from ampel.content.SVGRecord import SVGRecord
-from ampel.model.PlotProperties import PlotProperties
 from matplotlib.figure import Figure
+from typing import Optional, List, Dict, Any
+
+from ampel.content.SVGRecord import SVGRecord
+from ampel.protocol.LoggerProtocol import LoggerProtocol
+from ampel.model.PlotProperties import PlotProperties
+from ampel.util.compression import decompress_str, compress as fcompress
+
 
 # catch SyntaxWarning: "is not" with a literal. Did you mean "!="?
 with warnings.catch_warnings():
@@ -26,6 +29,7 @@ with warnings.catch_warnings():
 		module=r"svgutils\.transform"
 	)
 	import svgutils as su
+
 
 def mplfig_to_svg_dict(
 	mpl_fig, file_name: str, title: Optional[str] = None, tags: Optional[List[str]] = None,
@@ -72,25 +76,10 @@ def mplfig_to_svg_dict(
 		ret['title'] = title
 
 	if compress == 0:
-		ret['compressed'] = False
 		ret['svg'] = imgdata.getvalue()
 		return ret
 
-	outbio = io.BytesIO()
-
-	zf = zipfile.ZipFile(
-		outbio, "a", zipfile.ZIP_DEFLATED, False
-	)
-
-	zf.writestr(
-		file_name,
-		imgdata.getvalue().encode('utf8')
-	)
-
-	zf.close()
-
-	ret['compressed'] = True
-	ret['svg'] = outbio.getvalue()
+	ret['svg'] = fcompress(imgdata.getvalue().encode('utf8'), file_name)
 
 	if compress == 2:
 		ret['svg_str'] = imgdata.getvalue()
@@ -141,13 +130,8 @@ def decompress_svg_dict(svg_dict: SVGRecord) -> SVGRecord:
 	if not isinstance(svg_dict, dict):
 		raise ValueError("Parameter svg_dict must be an instance of dict")
 
-	if svg_dict.get('compressed'):
-		bio = io.BytesIO()
-		bio.write(svg_dict['svg']) # type: ignore
-		zf = zipfile.ZipFile(bio)
-		file_name = zf.namelist()[0]
-		svg_dict['svg'] = str(zf.read(file_name), "utf8")
-		del svg_dict['compressed']
+	if isinstance(svg_dict['svg'], bytes):
+		svg_dict['svg'] = decompress_str(svg_dict['svg'])
 
 	return svg_dict
 
