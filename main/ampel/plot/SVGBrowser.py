@@ -112,14 +112,15 @@ class SVGBrowser:
 
 		html = ""
 		for stock_id in self._svg_loader._plots:
-			html += "<div>"
-			html += self._svg_loader._plots[stock_id]._repr_html_(
+			if element := self._svg_loader._plots[stock_id]._repr_html_(
 				scale = scale,
 				title_prefix = self._get_title_prefix(stock_id),
 				png_convert = png_convert,
 				inter_padding = inter_padding
-			)
-			html += "</div>"
+			):
+				html += "<div>"
+				html += element
+				html += "</div>"
 
 		display(HTML(html))
 
