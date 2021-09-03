@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "ampel-plots"
+version = "0.8.0-alpha.0"
+description = "Plotting add-on for the Ampel system"
+authors = ["Valery Brinnel"]
+license = "BSD-3-Clause"
+packages = [
+    {include = "ampel"}
+]
+include = [
+    'conf/*/*.json',
+    'conf/*/*/*.json',
+    'conf/*/*.yaml',
+    'conf/*/*/*.yaml',
+    'conf/*/*.yml',
+    'conf/*/*/*.yml',
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.10"
+matplotlib = "^3.4.3"
+svgutils = "0.3.0"
+CairoSVG = "^2.5.2"
+ampel-core = "^0.8.0-alpha.5"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.910"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
