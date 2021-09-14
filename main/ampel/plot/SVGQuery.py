@@ -19,13 +19,13 @@ class SVGQuery:
 
 	def __init__(self,
 		col: Literal["t0", "t1", "t2", "t3"],
-		path: str = 'body.data.plots',
+		path: str = 'body.data.plot',
 		unit: Optional[UnitId] = None,
 		config: Optional[int] = None,
 		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
 		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
 	):
-		self._query = {}
+		self._query = {path: {'$exists': True}}
 		self.tags = None
 		self.path = path
 		self.col = col

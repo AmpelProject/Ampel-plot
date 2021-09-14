@@ -48,6 +48,10 @@ class SVGPlot:
 		return tag in self._tags
 
 
+	def get_file_name(self) -> str:
+		return self._record['name'] # type: ignore
+
+
 	def has_tags(self, tags: Sequence[Tag]) -> bool:
 		if not self._tags:
 			return False

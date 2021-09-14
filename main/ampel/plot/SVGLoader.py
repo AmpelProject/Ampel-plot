@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/plot/SVGLoader.py
+# File              : Ampel-plots/main/ampel/plot/SVGLoader.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 29.06.2021
+# Last Modified Date: 13.07.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
@@ -13,6 +13,7 @@ from collections import defaultdict
 from ampel.types import StockId, UnitId, Tag, List, Any
 from ampel.core.AmpelDB import AmpelDB
 from ampel.content.SVGRecord import SVGRecord
+from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.plot.T2SVGQuery import T2SVGQuery
 from ampel.plot.SVGCollection import SVGCollection
@@ -51,8 +52,9 @@ class SVGLoader:
 		return sl
 
 
-	def __init__(self, db: AmpelDB, queries: Optional[List[SVGQuery]] = None) -> None:
+	def __init__(self, db: AmpelDB, queries: Optional[List[SVGQuery]] = None, logger: Optional[AmpelLogger] = None) -> None:
 		self._db = db
+		self.logger = logger
 		self._queries: List[SVGQuery] = []
 		self._plots: Dict[StockId, SVGCollection] = defaultdict(SVGCollection)
 		if queries:
@@ -73,33 +75,59 @@ class SVGLoader:
 	def run(self) -> "SVGLoader":
 
 		for q in self._queries:
-			if q.path == "plots": # root
-				for el in self._db.get_collection(q.col).find(q._query):
-					self._load_plots(q, el['stock'], el['plots'])
-			elif q.path == "body.data.plots": # convention
-				for el in self._db.get_collection(q.col).find(q._query):
-					if isinstance(el['body'], list): # t2
-						self._load_body_el(q, el['stock'], el['body'][-1])
-					if isinstance(el['body'], dict): # t3
-						self._load_body_el(q, el['stock'], el['body'])
+
+			if self.logger and self.logger.verbose > 1:
+				self.logger.debug(f"Running {q.col} query: {q._query}")
+
+			res = self._db.get_collection(q.col).find(q._query)
+
+			if self.logger and self.logger.verbose > 1:
+				self.logger.debug(f"{res.count()} documents matched")
+
+			if q.path == "plot": # root
+				for el in res:
+					if self.logger and self.logger.verbose > 1:
+						self.logger.debug(f"Parsing {el['_id']}")
+					self._load_plots(q, el['stock'], el['plot'])
+			elif q.path == "body.data.plot": # convention
+				for el in res:
+					if self.logger and self.logger.verbose > 1:
+						self.logger.debug(f"Parsing {el['_id']}")
+					if 'body' in el: # t1 docs do not necessarily have body
+						if isinstance(el['body'], list):
+							for ell in el['body']:
+								self._load_body_el(q, el['stock'], ell)
+						if isinstance(el['body'], dict):
+							self._load_body_el(q, el['stock'], el['body'])
 
 		return self
 
 
 	def _load_body_el(self, q: SVGQuery, stock: StockId, arg: Any, k: str = 'data') -> None:
+
+		if k not in arg:
+			return
+
 		if isinstance(stock, list):
 			stock = tuple(stock)
+
 		if isinstance(arg[k], dict):
-			self._load_plots(q, stock, arg[k]['plots'])
+			if 'plot' not in arg[k]:
+				return
+			self._load_plots(q, stock, arg[k]['plot'])
+
 		elif isinstance(arg[k], list):
 			for el in arg[k]:
-				if isinstance(el, dict) and "plots" in el:
-					self._load_plots(q, stock, el['plots'])
+				if isinstance(el, dict) and "plot" in el:
+					self._load_plots(q, stock, el['plot'])
 
 
 	def _load_plots(self,
 		query: SVGQuery, stock: StockId, plots: Sequence[SVGRecord]
 	) -> None:
+
+		if self.logger and self.logger.verbose > 1:
+			self.logger.debug("Loading plots")
 
 		for p in plots:
 
