@@ -77,7 +77,7 @@ class SVGPlot:
 			html += '<h3 style="padding-left:%ipx">%s %s</h3>' % (
 				self._title_left_padding,
 				"" if title_prefix is None else title_prefix,
-				self._record['title']
+				self._record['title'].replace("\n", "<br/>")
 			)
 
 		if show_tags:

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/plot/SVGCollection.py
+# File              : Ampel-plots/main/ampel/plot/SVGCollection.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 09.02.2021
+# Last Modified Date: 14.09.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, List
@@ -108,7 +108,7 @@ class SVGCollection:
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
 
 		if show_col_title and self._col_title:
-			html += '<h1 style="color: darkred">' + self._col_title + '</h1>'
+			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
 
 		if flexbox_wrap:
 			html += '<div style="\
