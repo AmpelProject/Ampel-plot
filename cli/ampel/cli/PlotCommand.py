@@ -65,7 +65,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('save.required', 'out', type=str)
 
 		# Optional
-		builder.add_arg('optional', 'head', type=int)
+		builder.add_arg('optional', 'limit', type=int)
 		builder.add_arg('optional', 'secrets')
 		builder.add_arg('optional', 'debug', action="store_true")
 		builder.add_arg('optional', 'id-mapper', type=str)
@@ -124,7 +124,7 @@ class PlotCommand(AbsCoreCommand):
 
 		html = args.get("html")
 		stack = args.get("stack")
-		iter_max = args.get("head") or 0
+		limit = args.get("limit") or 0
 		png_dpi = args.get("png")
 
 		if stack and not html:
@@ -138,7 +138,7 @@ class PlotCommand(AbsCoreCommand):
 			base_flag = LogFlag.MANUAL_RUN
 		)
 
-		l = SVGLoader(ctx.db, logger=logger)
+		l = SVGLoader(ctx.db, logger=logger, limit=limit)
 
 		if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
 			for el in ("t0", "t1", "t2", "t3"):
@@ -147,7 +147,7 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tags = args.get("with-tag")
+							tag = args.get("with-tag")
 						)
 					)
 		else:
@@ -157,7 +157,7 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tags = args.get("with-tag")
+							tag = args.get("with-tag")
 						)
 					)
 
@@ -166,7 +166,6 @@ class PlotCommand(AbsCoreCommand):
 		if stack:
 			scol = SVGCollection()
 
-		#print(iter_max)
 		i = 1
 		for v in l._plots.values():
 
@@ -196,15 +195,9 @@ class PlotCommand(AbsCoreCommand):
 
 				i += 1
 
-				if stack and i % stack == 0:
+				if stack > 1 and i % stack == 0:
 					self.show_collection(scol)
 					scol = SVGCollection()
-
-				if iter_max > 0:
-					if i > iter_max:
-						if stack:
-							self.show_collection(scol)
-						return
 
 		if stack:
 			self.show_collection(scol)
