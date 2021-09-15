@@ -9,6 +9,11 @@
 
 from typing import Literal, Optional, Sequence, Dict, Any, Union
 from ampel.types import StockId, Tag, UnitId
+from ampel.mongo.schema import apply_schema, apply_excl_schema
+from ampel.model.operator.AnyOf import AnyOf
+from ampel.model.operator.AllOf import AllOf
+from ampel.model.operator.OneOf import OneOf
+
 
 class SVGQuery:
 
@@ -23,24 +28,41 @@ class SVGQuery:
 		unit: Optional[UnitId] = None,
 		config: Optional[int] = None,
 		stock: Union[None, StockId, Sequence[StockId]] = None,
-		tag: Union[None, Tag, Sequence[Tag]] = None,
+		doc_tag: Optional[
+			Dict[
+				Literal['with', 'without'],
+				Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			]
+		] = None,
+		plot_tag: Optional[
+			Dict[
+				Literal['with', 'without'],
+				Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			]
+		] = None,
+		custom_match: Optional[dict] = None
 	):
 		self._query = {path: {'$exists': True}}
-		self.tag: Union[None, Tag, Sequence[Tag]] = None
 		self.path = path
 		self.col = col
 
 		if stock:
 			self.set_stock(stock)
 
-		if tag:
-			self.set_tag(tag)
+		if plot_tag:
+			self.set_plot_tag(plot_tag)
+
+		if doc_tag:
+			self.set_doc_tag(doc_tag)
 
 		if unit:
 			self._query['unit'] = unit
 
 		if config:
 			self._query['config'] = unit
+
+		if custom_match:
+			self._query.update(custom_match)
 
 
 	def get_query(self) -> Dict[str, Any]:
@@ -55,9 +77,34 @@ class SVGQuery:
 			self._query['stock'] = stock
 
 
-	def set_tag(self, tag: Union[Tag, Sequence[Tag]]) -> None:
-		self.tag = tag
-		self._query[self.path + ".tag"] = {'$all': tag} if isinstance(tag, (list, tuple)) else tag
+	def set_doc_tag(self,
+		tag: Dict[
+			Literal['with', 'without'],
+			Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+		]
+	) -> None:
+
+		if 'with' in tag:
+			apply_schema(self._query, 'tag', tag['with'])
+
+		# Order matters, parse_dict(...) must be called *after* parse_excl_dict(...)
+		if 'without' in tag:
+			apply_excl_schema(self._query, 'tag', tag['without'])
+
+
+	def set_plot_tag(self,
+		tag: Dict[
+			Literal['with', 'without'],
+			Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+		]
+	) -> None:
+
+		if 'with' in tag:
+			apply_schema(self._query, self.path + ".tag", tag['with'])
+
+		# Order matters, parse_dict(...) must be called *after* parse_excl_dict(...)
+		if 'without' in tag:
+			apply_excl_schema(self._query, self.path + ".tag", tag['without'])
 
 
 	def set_query_parameter(self, name: str, value: Any, overwrite: bool = False) -> None:

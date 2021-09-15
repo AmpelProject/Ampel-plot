@@ -28,8 +28,10 @@ h = {
 	"config": "path to an ampel config file (yaml/json)",
 	"secrets": "path to a YAML secrets store in sops format",
 	"stock": "stock id(s). Comma sperated values can be used",
-	"with-tag": "match plots with tag",
-	"without-tag": "exclude plots with tag",
+	"with-plot-tag": "match plots with tag",
+	"without-plot-tag": "exclude plots with tag",
+	"with-doc-tag": "match plots embedded in doc with tag",
+	"without-doc-tag": "exclude plots embedded in doc with tag",
 	"png": "convert to png (from svg)",
 	"html": "html output format (includes plot titles)",
 	"stack": "stack <n> images into one html structure (html option required). No arguments means all images are stacked together.",
@@ -88,7 +90,10 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.add_arg('match', "stock", action=MaybeIntAction, nargs="+")
 		builder.create_logic_args('match', "channel", "Channel")
-		builder.create_logic_args('match', "with-tag", "Tag")
+		builder.create_logic_args('match', "with-doc-tag", "Doc tag", json=False)
+		builder.create_logic_args('match', "without-doc-tag", "Doc tag", json=False)
+		builder.create_logic_args('match', "with-plot-tag", "Plot tag", json=False)
+		builder.create_logic_args('match', "without-plot-tag", "Plot tag", json=False)
 		builder.add_arg('match', "custom-match", metavar="#", action=LoadJSONAction)
 
 		self.parsers.update(
@@ -139,6 +144,28 @@ class PlotCommand(AbsCoreCommand):
 		)
 
 		l = SVGLoader(ctx.db, logger=logger, limit=limit)
+		ptags: dict = {}
+		dtags: dict = {}
+
+		for el in ("with_doc_tag", "with_doc_tags_and", "with_doc_tags_or"):
+			if args.get(el):
+				dtags['with'] = args.get(el)
+				break
+
+		for el in ("without_doc_tag", "without_doc_tags_and", "without_doc_tags_or"):
+			if args.get(el):
+				dtags['without'] = args.get(el)
+				break
+
+		for el in ("with_plot_tag", "with_plot_tags_and", "with_plot_tags_or"):
+			if args.get(el):
+				ptags['with'] = args.get(el)
+				break
+
+		for el in ("without_plot_tag", "without_plot_tags_and", "without_plot_tags_or"):
+			if args.get(el):
+				ptags['without'] = args.get(el)
+				break
 
 		if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
 			for el in ("t0", "t1", "t2", "t3"):
@@ -147,7 +174,9 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tag = args.get("with_tag")
+							plot_tag = ptags,
+							doc_tag = dtags,
+							custom_match = args.get("custom_match")
 						)
 					)
 		else:
@@ -157,7 +186,9 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tag = args.get("with_tag")
+							plot_tag = ptags,
+							doc_tag = dtags,
+							custom_match = args.get("custom_match")
 						)
 					)
 

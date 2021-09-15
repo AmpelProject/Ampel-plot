@@ -147,16 +147,16 @@ class SVGLoader:
 
 		for p in plots:
 
-			if query.tag:
-				if isinstance(query.tag, (list, tuple)):
-					if isinstance(p['tag'], list) and not all(x in p['tag'] for x in query.tag):
-						continue
-					elif isinstance(p['tag'], (int, str)) and p['tag'] not in query.tag:
-						continue
-				else:
-					if isinstance(p['tag'], list) and query.tag not in p['tag']:
-						continue
-					elif isinstance(p['tag'], (int, str)) and query.tag != p['tag']:
-						continue
+			#if query.tag:
+			#	if isinstance(query.tag, (list, tuple)):
+			#		if isinstance(p['tag'], list) and not all(x in p['tag'] for x in query.tag):
+			#			continue
+			#		elif isinstance(p['tag'], (int, str)) and p['tag'] not in query.tag:
+			#			continue
+			##	else:
+			#		if isinstance(p['tag'], list) and query.tag not in p['tag']:
+			#			continue
+			#		elif isinstance(p['tag'], (int, str)) and query.tag != p['tag']:
+			#			continue
 
 			self._plots[stock].add_raw_db_dict(p)
