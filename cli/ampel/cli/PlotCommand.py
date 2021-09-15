@@ -147,7 +147,7 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tag = args.get("with-tag")
+							tag = args.get("with_tag")
 						)
 					)
 		else:
@@ -157,7 +157,7 @@ class PlotCommand(AbsCoreCommand):
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
 							path = 'body.data.plot',
-							tag = args.get("with-tag")
+							tag = args.get("with_tag")
 						)
 					)
 
