@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/plot/SVGQuery.py
+# File              : Ampel-plots/main/ampel/plot/SVGQuery.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.06.2019
-# Last Modified Date: 29.06.2021
+# Last Modified Date: 15.09.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Literal, Optional, Sequence, Dict, Any, Union
@@ -22,19 +22,19 @@ class SVGQuery:
 		path: str = 'body.data.plot',
 		unit: Optional[UnitId] = None,
 		config: Optional[int] = None,
-		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
-		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
+		stock: Union[None, StockId, Sequence[StockId]] = None,
+		tag: Union[None, Tag, Sequence[Tag]] = None,
 	):
 		self._query = {path: {'$exists': True}}
-		self.tags = None
+		self.tag: Union[None, Tag, Sequence[Tag]] = None
 		self.path = path
 		self.col = col
 
-		if stocks:
-			self.set_stocks(stocks)
+		if stock:
+			self.set_stock(stock)
 
-		if tags:
-			self.set_tags(tags)
+		if tag:
+			self.set_tag(tag)
 
 		if unit:
 			self._query['unit'] = unit
@@ -47,17 +47,17 @@ class SVGQuery:
 		return self._query
 
 
-	def set_stocks(self, stocks: Union[StockId, Sequence[StockId]]) -> None:
+	def set_stock(self, stock: Union[StockId, Sequence[StockId]]) -> None:
 
-		if isinstance(stocks, (list, tuple)):
-			self._query['stock'] = {'$in': stocks}
+		if isinstance(stock, (list, tuple)):
+			self._query['stock'] = {'$in': stock}
 		else:
-			self._query['stock'] = stocks
+			self._query['stock'] = stock
 
 
-	def set_tags(self, tags: Union[Tag, Sequence[Tag]]) -> None:
-		self.tags = tags
-		self._query[self.path + ".tag"] = {'$all': tags} if isinstance(tags, (list, tuple)) else tags
+	def set_tag(self, tag: Union[Tag, Sequence[Tag]]) -> None:
+		self.tag = tag
+		self._query[self.path + ".tag"] = {'$all': tag} if isinstance(tag, (list, tuple)) else tag
 
 
 	def set_query_parameter(self, name: str, value: Any, overwrite: bool = False) -> None:
