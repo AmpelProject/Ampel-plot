@@ -31,13 +31,13 @@ class SVGQuery:
 		doc_tag: Optional[
 			Dict[
 				Literal['with', 'without'],
-				Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 			]
 		] = None,
 		plot_tag: Optional[
 			Dict[
 				Literal['with', 'without'],
-				Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 			]
 		] = None,
 		custom_match: Optional[dict] = None
@@ -45,6 +45,12 @@ class SVGQuery:
 		self._query = {path: {'$exists': True}}
 		self.path = path
 		self.col = col
+		self.plot_tag: Optional[
+			Dict[
+				Literal['with', 'without'],
+				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			]
+		] = None
 
 		if stock:
 			self.set_stock(stock)
@@ -80,7 +86,7 @@ class SVGQuery:
 	def set_doc_tag(self,
 		tag: Dict[
 			Literal['with', 'without'],
-			Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 		]
 	) -> None:
 
@@ -95,9 +101,11 @@ class SVGQuery:
 	def set_plot_tag(self,
 		tag: Dict[
 			Literal['with', 'without'],
-			Union[Tag, Dict, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 		]
 	) -> None:
+
+		self.plot_tag = tag
 
 		if 'with' in tag:
 			apply_schema(self._query, self.path + ".tag", tag['with'])
