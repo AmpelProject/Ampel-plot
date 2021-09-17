@@ -28,6 +28,10 @@ h = {
 	"config": "path to an ampel config file (yaml/json)",
 	"secrets": "path to a YAML secrets store in sops format",
 	"stock": "stock id(s). Comma sperated values can be used",
+	"base-path": "default: body.data.plot",
+	# TODO: find better name
+	"enforce-base-path": "Within a given doc, load only plots with base-path",
+	"last-body": "If body is a sequence (t2 docs), parse only the last body element",
 	"with-plot-tag": "match plots with tag",
 	"without-plot-tag": "exclude plots with tag",
 	"with-doc-tag": "match plots embedded in doc with tag",
@@ -71,6 +75,9 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'secrets')
 		builder.add_arg('optional', 'debug', action="store_true")
 		builder.add_arg('optional', 'id-mapper', type=str)
+		builder.add_arg('optional', 'base-path', type=str)
+		builder.add_arg('optional', 'enforce-base-path', action="store_true")
+		builder.add_arg('optional', 'last-body', action="store_true")
 
 		# Optional mutually exclusive args
 		builder.add_x_args('optional',
@@ -95,6 +102,12 @@ class PlotCommand(AbsCoreCommand):
 		builder.create_logic_args('match', "with-plot-tag", "Plot tag", json=False)
 		builder.create_logic_args('match', "without-plot-tag", "Plot tag", json=False)
 		builder.add_arg('match', "custom-match", metavar="#", action=LoadJSONAction)
+
+		builder.add_example('show', "-stack 100 -html -t2")
+		builder.add_example('show', "-stack 100 -html -t2 -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"unit\": \"T2PS1ThumbNedSNCosmo\"}' -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
+		builder.add_example('show', "-stack -html -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
+		
+		
 
 		self.parsers.update(
 			builder.get()
@@ -135,6 +148,9 @@ class PlotCommand(AbsCoreCommand):
 		if stack and not html:
 			raise ValueError("Option 'stack' requires option 'html'")
 
+		if (x := args.get('base_path')) and not x.startswith("body."):
+			raise ValueError("Option 'base-path' must start with 'body.'")
+
 		ctx = self.get_context(args, unknown_args) # type: ignore[var-annotated]
 		maybe_convert_stock(args)
 
@@ -143,7 +159,14 @@ class PlotCommand(AbsCoreCommand):
 			base_flag = LogFlag.MANUAL_RUN
 		)
 
-		l = SVGLoader(ctx.db, logger=logger, limit=limit)
+		l = SVGLoader(
+			ctx.db,
+			logger=logger,
+			limit=limit,
+			enforce_base_path=args.get('enforce_base_path', False),
+			last_body=args.get('last_body', False)
+		)
+
 		ptags: dict = {}
 		dtags: dict = {}
 
@@ -173,7 +196,7 @@ class PlotCommand(AbsCoreCommand):
 					l.add_query(
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
-							path = 'body.data.plot',
+							path = args.get('base_path') or 'body.data.plot',
 							plot_tag = ptags,
 							doc_tag = dtags,
 							custom_match = args.get("custom_match")
@@ -185,7 +208,7 @@ class PlotCommand(AbsCoreCommand):
 					l.add_query(
 						SVGQuery(
 							col = el, # type: ignore[arg-type]
-							path = 'body.data.plot',
+							path = args.get('base_path') or 'body.data.plot',
 							plot_tag = ptags,
 							doc_tag = dtags,
 							custom_match = args.get("custom_match")
