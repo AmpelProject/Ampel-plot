@@ -29,6 +29,7 @@ h = {
 	"secrets": "path to a YAML secrets store in sops format",
 	"stock": "stock id(s). Comma sperated values can be used",
 	"base-path": "default: body.data.plot",
+	"limit": "limit for underlying DB query",
 	# TODO: find better name
 	"enforce-base-path": "Within a given doc, load only plots with base-path",
 	"last-body": "If body is a sequence (t2 docs), parse only the last body element",
