@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/plot/SVGPlot.py
+# File              : Ampel-plots/main/ampel/plot/SVGPlot.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 10.03.2021
+# Last Modified Date: 27.09.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
+import os
 from typing import Optional, Sequence
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.utils import rescale, to_png, decompress_svg_dict
 
 class SVGPlot:
-
-	# display_div = '<div style="display: inline-flex; justify-content: center;">'
 
 	def __init__(
 		self, content: SVGRecord, title_left_padding: int = 0, center: bool = True
@@ -59,6 +58,13 @@ class SVGPlot:
 			return self._tags in tags
 		return all(el in self._tags for el in tags)
 
+
+	def to_html_file(self, path: str) -> None:
+		with open(os.path.join(path, self._record['name']) + '.html', 'w') as f:
+			f.write("<html><head></head><body>")
+			f.write(self._repr_html_())
+			f.write("</body></html>")
+		
 
 	def _repr_html_(self,
 		scale: Optional[float] = None, show_title: bool = True,
