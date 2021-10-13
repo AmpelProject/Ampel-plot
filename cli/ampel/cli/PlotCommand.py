@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.03.2021
-# Last Modified Date: 06.10.2021
+# Last Modified Date: 13.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import os, webbrowser, tempfile, hashlib
@@ -29,11 +29,12 @@ h = {
 	"secrets": "path to a YAML secrets store in sops format",
 	"stock": "stock id(s). Comma sperated values can be used",
 	"base-path": "default: body.data.plot",
+	"unit": "docs will have to match the provided ampel unit name",
 	"limit": "limit for underlying DB query",
 	# TODO: find better name
-	"enforce-base-path": "Within a given doc, load only plots with base-path",
+	"enforce-base-path": "within a given doc, load only plots with base-path",
 	"last-body": "If body is a sequence (t2 docs), parse only the last body element",
-	"latest-doc": "Using the provided matching criteria, show plot(s) only from latest doc",
+	"latest-doc": "using the provided matching criteria, show plot(s) only from latest doc",
 	"with-plot-tag": "match plots with tag",
 	"without-plot-tag": "exclude plots with tag",
 	"with-doc-tag": "match plots embedded in doc with tag",
@@ -79,6 +80,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'debug', action="store_true")
 		builder.add_arg('optional', 'id-mapper', type=str)
 		builder.add_arg('optional', 'base-path', type=str)
+		builder.add_arg('optional', 'unit', type=str)
 		builder.add_arg('optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('optional', 'last-body', action="store_true")
 		builder.add_arg('optional', 'latest-doc', action="store_true")
@@ -109,8 +111,8 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.add_example('show', "-stack 100 -html -t2")
 		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc")
-		builder.add_example('show', "-stack 100 -html -t2 -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"unit\": \"T2PS1ThumbNedSNCosmo\"}' -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
 		builder.add_example('show', "-stack -html -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
+		builder.add_example('show', "-stack 100 -html -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
 		
 		self.parsers.update(
 			builder.get()
@@ -118,27 +120,6 @@ class PlotCommand(AbsCoreCommand):
 
 		return self.parsers[sub_op]
 
-		"""
-		for el in (0, 1, 2, 3):
-			optional.add_argument(f'--t{el}', dest=f't{el}', action='store_true', help=f"match t{el} plots")
-			optional.set_defaults(**{f"t{el}": False})
-		for el in (0, 1, 2, 3):
-			optional.add_argument(f'--no-t{el}', dest=f't{el}', action='store_false', help=f"do not match t{el} plots (default)")
-
-		optional.add_argument("--png", dest='png', action='store_true', help=h['png'])
-		optional.set_defaults(png=False)
-		optional.add_argument("--secrets", default=None, help=h['secrets'])
-		optional.add_argument("--with-tag", type=str, default=True, help=h['with-tag'])
-		optional.add_argument("--without-tag", type=str, default=True, help=h['without-tag'])
-		optional.add_argument("-v", "--verbose", action="count", default=0, help=h['verbose'])
-		optional.add_argument("-d", "--debug", action="count", default=0, help=h['verbose'])
-
-
-		parser.epilog = (
-			"examples:\n" +
- 			"-> ampel plot --config ampel_conf.yaml --stock 85628462 --with-tag SNCOSMO -out images"
-		)
-		"""
 
 	# Mandatory implementation
 	def run(self, args: Dict[str, Any], unknown_args: Sequence[str], sub_op: Optional[str] = None) -> None:
@@ -164,8 +145,8 @@ class PlotCommand(AbsCoreCommand):
 
 		l = SVGLoader(
 			ctx.db,
-			logger=logger,
-			limit=limit,
+			logger = logger,
+			limit = limit,
 			enforce_base_path= args['enforce_base_path'],
 			last_body = args['last_body'],
 			latest_doc = args['latest_doc']
@@ -203,6 +184,7 @@ class PlotCommand(AbsCoreCommand):
 							path = args.get('base_path') or 'body.data.plot',
 							plot_tag = ptags,
 							doc_tag = dtags,
+							unit = args.get("unit"),
 							custom_match = args.get("custom_match")
 						)
 					)
@@ -215,6 +197,7 @@ class PlotCommand(AbsCoreCommand):
 							path = args.get('base_path') or 'body.data.plot',
 							plot_tag = ptags,
 							doc_tag = dtags,
+							unit = args.get("unit"),
 							custom_match = args.get("custom_match")
 						)
 					)
