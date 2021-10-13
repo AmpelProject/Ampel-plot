@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 17.09.2021
+# Last Modified Date: 13.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
@@ -65,12 +65,14 @@ class SVGLoader:
 		logger: Optional[AmpelLogger] = None,
 		last_body: bool = False,
 		enforce_base_path: bool = False,
-		limit: int = 0
+		limit: int = 0,
+		latest_doc: bool = False
 	) -> None:
 		self._db = db
 		self.logger = logger
 		self.limit = limit
 		self.last_body = last_body
+		self.latest_doc = latest_doc
 		self.enforce_base_path = enforce_base_path
 		self._queries: List[SVGQuery] = []
 		self._plots: Dict[StockId, SVGCollection] = defaultdict(SVGCollection)
@@ -100,14 +102,22 @@ class SVGLoader:
 			if self._debug:
 				self.logger.debug(f"Running {q.col} query: {q._query}")
 
-			if self.limit:
+			if self.latest_doc:
+				res = self._db.get_collection(q.col).find(q._query).sort("_id", -1).limit(1)
+				if self._debug:
+					if res.count():
+						self.logger.debug(f"{res.count()} documents matched [loading only the latest]")
+					else:
+						self.logger.debug("No document matched")
+			elif self.limit:
 				res = self._db.get_collection(q.col).find(q._query).limit(self.limit)
+				if self._debug:
+					self.logger.debug(f"{res.count()} document(s) matched [{res.count(True)} with limit]")
 			else:
 				res = self._db.get_collection(q.col).find(q._query)
+				if self._debug:
+					self.logger.debug(f"{res.count()} document(s) matched")
 
-			if self._debug:
-				self.logger.debug(f"{res.count()} documents matched")
-	
 			for el in res:
 
 				i += 1
