@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 13.10.2021
+# Last Modified Date: 22.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
@@ -191,7 +191,7 @@ class SVGLoader:
 			else:
 				self.logger.debug(" Loading plot(s) with path body.plot")
 
-		self._load_plots(kwargs['q'], kwargs['stock'], d[k])
+		self._load_plots(kwargs['q'], kwargs['stock'], [d[k]] if isinstance(d[k], dict) else d[k])
 
 
 	def _load_plots(self, query: SVGQuery, stock: StockId, plots: Sequence[SVGRecord]) -> None:
