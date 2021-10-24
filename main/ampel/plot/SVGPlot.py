@@ -4,19 +4,22 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 27.09.2021
+# Last Modified Date: 22.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import os
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union, List
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.utils import rescale, to_png, decompress_svg_dict
 
 class SVGPlot:
 
-	def __init__(
-		self, content: SVGRecord, title_left_padding: int = 0, center: bool = True
+	def __init__(self,
+		content: SVGRecord,
+		title_left_padding: int = 0,
+		center: bool = True,
+		doc_tags: Union[None, Tag, List[Tag]] = None
 	):
 
 		if isinstance(content['svg'], bytes):
@@ -28,6 +31,7 @@ class SVGPlot:
 		self._tags = content['tag']
 		self._title_left_padding = title_left_padding
 		self._center = center
+		self._doc_tags = doc_tags
 
 
 	def rescale(self, scale: float = 1.0) -> None:
@@ -66,28 +70,43 @@ class SVGPlot:
 			f.write("</body></html>")
 		
 
+	def _get_title(self, title_prefix: Optional[str] = None) -> str:
+		return '<h3 style="padding-left:%ipx;line-height:20pt">%s %s</h3>' % (
+			self._title_left_padding,
+			"" if title_prefix is None else title_prefix,
+			self._record['title'].replace("\n", "<br/>")
+		)
+
+
+	def _get_tags(self, include_doc_tags: bool = False) -> str:
+		ret = '<h3>' + str(self._tags) + '</h3>'
+		if include_doc_tags and self._doc_tags:
+			ret += str(self._doc_tags) if isinstance(self._doc_tags, (int, str)) \
+				else " ".join(self._doc_tags) # type: ignore[arg-type]
+		else:
+			ret += str(self._tags)
+		return ret + '</h3>'
+
+
 	def _repr_html_(self,
 		scale: Optional[float] = None, show_title: bool = True,
-		title_prefix: Optional[str] = None, show_tags: bool = False,
-		padding_bottom: int = 0, png_convert: bool = False
+		title_prefix: Optional[str] = None, title_on_top: bool = False,
+		show_tags: bool = False, tags_on_top: bool = False,
+		include_doc_tags: bool = False, padding_bottom: int = 0,
+		png_convert: bool = False
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used
 		"""
 
 		html = "<center>" if self._center else ""
-
 		html += '<div style="padding-bottom: %ipx">' % padding_bottom
 
-		if show_title:
-			html += '<h3 style="padding-left:%ipx">%s %s</h3>' % (
-				self._title_left_padding,
-				"" if title_prefix is None else title_prefix,
-				self._record['title'].replace("\n", "<br/>")
-			)
+		if show_title and title_on_top:
+			html += self._get_title(title_prefix)
 
-		if show_tags:
-			html += '<h3>' + str(self._tags) + '</h3>'
+		if show_tags and tags_on_top:
+			html += self._get_tags(include_doc_tags)
 
 		# html += SVGPlot.display_div
 		html += "<div>"
@@ -106,7 +125,15 @@ class SVGPlot:
 		else:
 			html += to_png(self._record['svg'], dpi=png_convert) if png_convert else self._record['svg']
 
-		return html + '</div></div></center>' if self._center else '</div></div>'
+		html += '</div>'
+
+		if show_title and not title_on_top:
+			html += self._get_title(title_prefix)
+
+		if show_tags and not tags_on_top:
+			html += self._get_tags(include_doc_tags)
+
+		return html + '</div></center>' if self._center else '</div></div>'
 
 
 	def show_html(self, **kwargs):
