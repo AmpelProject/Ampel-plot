@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/model/PlotProperties.py
+# File              : Ampel-plots/main/ampel/model/PlotProperties.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 12.02.2021
-# Last Modified Date: 23.02.2021
+# Last Modified Date: 24.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import List, Optional, Dict, Any, Type, Union
-from ampel.types import StockId
+from ampel.types import StockId, Tag
 from ampel.model.StrictModel import StrictModel
 from ampel.abstract.AbsIdMapper import AbsIdMapper
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -97,7 +97,7 @@ class PlotProperties(StrictModel):
 	title: Optional[FormatModel]
 	fig_include_title: Optional[bool]
 	fig_text: Optional[FormatModel] # for matplotlib
-	tags: Optional[List[str]]
+	tags: Optional[Union[Tag, List[Tag]]]
 	width: Optional[int]
 	height: Optional[int]
 	compress: Optional[int]
@@ -122,12 +122,20 @@ class PlotProperties(StrictModel):
 	def _format_attr(self, attr: FormatModel, extra: Optional[Dict[str, Any]] = None) -> str:
 
 		if attr.arg_keys and extra:
+			try:
+				if 'stock' in attr.arg_keys and self.id_mapper:
+					extra = extra.copy()
+					extra['stock'] = self.get_ext_name(extra['stock'])
 
-			if 'stock' in attr.arg_keys and self.id_mapper:
-				extra = extra.copy()
-				extra['stock'] = self.get_ext_name(extra['stock'])
-
-			return attr.format_str % tuple(extra[k] for k in attr.arg_keys if k in extra)
+				return attr.format_str % tuple(extra[k] for k in attr.arg_keys if k in extra)
+			except TypeError as e:
+				# TODO: require logger for get_file_name(), get_title, and get_fig_text
+				# pass it through and use it here
+				print("#" * 50)
+				print(f"Format model: {attr}")
+				print("Arguments: " + str(tuple(extra[k] for k in attr.arg_keys if k in extra)))
+				print("#" * 50)
+				raise e
 
 		return attr.format_str
 
