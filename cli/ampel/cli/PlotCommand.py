@@ -43,6 +43,7 @@ h = {
 	"stack": "stack <n> images into one html structure (html option required). No arguments means all images are stacked together.",
 	"out": "path to file (printed to stdout otherwise)",
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
+	"tight": "Tight layout",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -84,6 +85,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('optional', 'last-body', action="store_true")
 		builder.add_arg('optional', 'latest-doc', action="store_true")
+		builder.add_arg('optional', 'tight', action="store_true")
 		builder.add_arg('optional', "db", type=str, nargs="+")
 
 		# Optional mutually exclusive args
@@ -178,7 +180,7 @@ class PlotCommand(AbsCoreCommand):
 
 
 		if stack:
-			scol = SVGCollection()
+			scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
 
 		for db in dbs:
 
