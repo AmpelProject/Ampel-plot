@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.03.2021
-# Last Modified Date: 13.10.2021
+# Last Modified Date: 27.10.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import os, webbrowser, tempfile, hashlib
@@ -17,7 +17,6 @@ from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
 from ampel.cli.utils import maybe_load_idmapper
-from ampel.log.LogFlag import LogFlag
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
@@ -43,6 +42,7 @@ h = {
 	"html": "html output format (includes plot titles)",
 	"stack": "stack <n> images into one html structure (html option required). No arguments means all images are stacked together.",
 	"out": "path to file (printed to stdout otherwise)",
+	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -84,6 +84,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('optional', 'last-body', action="store_true")
 		builder.add_arg('optional', 'latest-doc', action="store_true")
+		builder.add_arg('optional', "db", type=str, nargs="+")
 
 		# Optional mutually exclusive args
 		builder.add_x_args('optional',
@@ -111,6 +112,7 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.add_example('show', "-stack 100 -html -t2")
 		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc")
+		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2")
 		builder.add_example('show', "-stack -html -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
 		builder.add_example('show', "-stack 100 -html -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
 		
@@ -128,30 +130,29 @@ class PlotCommand(AbsCoreCommand):
 		stack = args.get("stack")
 		limit = args.get("limit") or 0
 		png_dpi = args.get("png")
+		db_prefixes = args.get("db")
+		dbs = []
 
+		config = self.load_config(args['config'], unknown_args, freeze=False)
+		vault = self.get_vault(args)
+
+		if db_prefixes:
+			for el in db_prefixes:
+				config._config['mongo']['prefix'] = el
+				dbs.append(
+					self.get_db(config, vault, require_existing_db=True)
+				)
+		else:
+			dbs = [self.get_db(config, vault, require_existing_db=True)]
+			
 		if stack and not html:
 			raise ValueError("Option 'stack' requires option 'html'")
 
 		if (x := args.get('base_path')) and not x.startswith("body."):
 			raise ValueError("Option 'base-path' must start with 'body.'")
 
-		ctx = self.get_context(args, unknown_args) # type: ignore[var-annotated]
 		maybe_load_idmapper(args)
-
-		logger = AmpelLogger.from_profile(
-			ctx, 'console_debug' if args['debug'] else 'console_info',
-			base_flag = LogFlag.MANUAL_RUN
-		)
-
-		l = SVGLoader(
-			ctx.db,
-			logger = logger,
-			limit = limit,
-			enforce_base_path= args['enforce_base_path'],
-			last_body = args['last_body'],
-			latest_doc = args['latest_doc']
-		)
-
+		logger = AmpelLogger.get_logger()
 		ptags: dict = {}
 		dtags: dict = {}
 
@@ -175,72 +176,87 @@ class PlotCommand(AbsCoreCommand):
 				ptags['without'] = args.get(el)
 				break
 
-		if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
-			for el in ("t0", "t1", "t2", "t3"):
-				if args[el]:
-					l.add_query(
-						SVGQuery(
-							col = el, # type: ignore[arg-type]
-							path = args.get('base_path') or 'body.data.plot',
-							plot_tag = ptags,
-							doc_tag = dtags,
-							unit = args.get("unit"),
-							stock = args.get("stock"),
-							custom_match = args.get("custom_match")
-						)
-					)
-		else:
-			for el in ("t0", "t1", "t2", "t3"):
-				if not args.get(f"no-{el}"):
-					l.add_query(
-						SVGQuery(
-							col = el, # type: ignore[arg-type]
-							path = args.get('base_path') or 'body.data.plot',
-							plot_tag = ptags,
-							doc_tag = dtags,
-							unit = args.get("unit"),
-							stock = args.get("stock"),
-							custom_match = args.get("custom_match")
-						)
-					)
-
-		l.run()
 
 		if stack:
 			scol = SVGCollection()
 
-		i = 1
-		for v in l._plots.values():
+		for db in dbs:
 
-			for svg in v._svgs:
+			loader = SVGLoader(
+				db,
+				logger = logger,
+				limit = limit,
+				enforce_base_path= args['enforce_base_path'],
+				last_body = args['last_body'],
+				latest_doc = args['latest_doc']
+			)
 
-				tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
-				if not os.path.exists(tmp_dir):
-					os.mkdir(tmp_dir)
-				path = os.path.join(tmp_dir, svg.get_file_name())
-				if png_dpi:
-					path = path.removesuffix(".svg") + ".png"
-					with open(path, 'wb') as fb:
-						fb.write(svg2png(bytestring=svg._record['svg'], dpi=png_dpi))
-				elif html:
-					if stack:
-						scol.add_svg_plot(svg)
+			if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
+				for el in ("t0", "t1", "t2", "t3"):
+					if args[el]:
+						loader.add_query(
+							SVGQuery(
+								col = el, # type: ignore[arg-type]
+								path = args.get('base_path') or 'body.data.plot',
+								plot_tag = ptags,
+								doc_tag = dtags,
+								unit = args.get("unit"),
+								stock = args.get("stock"),
+								custom_match = args.get("custom_match")
+							)
+						)
+			else:
+				for el in ("t0", "t1", "t2", "t3"):
+					if not args.get(f"no-{el}"):
+						loader.add_query(
+							SVGQuery(
+								col = el, # type: ignore[arg-type]
+								path = args.get('base_path') or 'body.data.plot',
+								plot_tag = ptags,
+								doc_tag = dtags,
+								unit = args.get("unit"),
+								stock = args.get("stock"),
+								custom_match = args.get("custom_match")
+							)
+						)
+
+			loader.run()
+
+
+			i = 1
+			for v in loader._plots.values():
+
+				for svg in v._svgs:
+
+					tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
+					if not os.path.exists(tmp_dir):
+						os.mkdir(tmp_dir)
+					path = os.path.join(tmp_dir, svg.get_file_name())
+					if png_dpi:
+						path = path.removesuffix(".svg") + ".png"
+						with open(path, 'wb') as fb:
+							fb.write(svg2png(bytestring=svg._record['svg'], dpi=png_dpi))
+					elif html:
+						if stack:
+							if len(dbs) > 1:
+								svg._record['title'] += f"\n<span style='color: steelblue'>{db.prefix}</span>"
+							scol.add_svg_plot(svg)
+						else:
+							path = path.removesuffix(".svg") + ".html"
+							with open(path, 'w') as fh:
+								fh.write(svg._repr_html_())
 					else:
-						path = path.removesuffix(".svg") + ".html"
-						with open(path, 'w') as fh:
-							fh.write(svg._repr_html_())
-				else:
-					with open(path, 'w') as ft:
-						ft.write(svg._record['svg']) # type: ignore[arg-type]
+						with open(path, 'w') as ft:
+							ft.write(svg._record['svg']) # type: ignore[arg-type]
 
-				if not stack:
-					webbrowser.open('file://' + path)
+					if not stack:
+						webbrowser.open('file://' + path)
 
-				i += 1
+					i += 1
 
-				if stack > 1 and i % stack == 0:
-					self.show_collection(scol)
-					scol = SVGCollection()
+					if stack > 1 and i % stack == 0:
+						self.show_collection(scol)
+						scol = SVGCollection()
 
 		if stack:
 			self.show_collection(scol)
