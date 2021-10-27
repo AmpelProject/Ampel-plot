@@ -16,7 +16,7 @@ from ampel.cli.ArgParserBuilder import ArgParserBuilder
 from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
-from ampel.cli.utils import maybe_convert_stock
+from ampel.cli.utils import maybe_load_idmapper
 from ampel.log.LogFlag import LogFlag
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGCollection import SVGCollection
@@ -136,7 +136,7 @@ class PlotCommand(AbsCoreCommand):
 			raise ValueError("Option 'base-path' must start with 'body.'")
 
 		ctx = self.get_context(args, unknown_args) # type: ignore[var-annotated]
-		maybe_convert_stock(args)
+		maybe_load_idmapper(args)
 
 		logger = AmpelLogger.from_profile(
 			ctx, 'console_debug' if args['debug'] else 'console_info',
@@ -185,6 +185,7 @@ class PlotCommand(AbsCoreCommand):
 							plot_tag = ptags,
 							doc_tag = dtags,
 							unit = args.get("unit"),
+							stock = args.get("stock"),
 							custom_match = args.get("custom_match")
 						)
 					)
@@ -198,6 +199,7 @@ class PlotCommand(AbsCoreCommand):
 							plot_tag = ptags,
 							doc_tag = dtags,
 							unit = args.get("unit"),
+							stock = args.get("stock"),
 							custom_match = args.get("custom_match")
 						)
 					)
