@@ -13,6 +13,6 @@ setup(
 	name='ampel-plots-cli',
 	version='0.8.0',
 	packages=find_namespace_packages(),
-	install_requires = ["ampel-core"],
+	install_requires = ["ampel-core", "pyperclip"],
 	entry_points = {'cli': ['plot Show or extract selected plots from the database = ampel.cli.PlotCommand']}
 )
