@@ -18,6 +18,7 @@ from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
 from ampel.cli.utils import maybe_load_idmapper
+from ampel.util.mappings import walk_and_process_dict
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
@@ -51,6 +52,7 @@ h = {
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
+pressed = False
 
 class PlotCommand(AbsCoreCommand):
 
@@ -256,43 +258,77 @@ class PlotCommand(AbsCoreCommand):
 		Note: method never returns: CTRL-C required
 		"""
 
-		import json, time, pyperclip # type: ignore
+		import json, time, pyperclip, re  # type: ignore
+		from pynput import keyboard # type: ignore
 		recent_value = ""
+		scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
+
+		def on_press(key):
+			global pressed
+			if not pressed and key == keyboard.Key.ctrl: # only if key is not held
+				pressed = True # key is held
+
+		def on_release(key):
+			global pressed
+			if key == keyboard.Key.ctrl:
+				pressed = False # key is released
+
+		listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+		listener.start()
 
 		print("Monitoring clipboard...")
+		pyperclip.copy('')
+		pattern = re.compile(r"(?:NumberLong|ObjectId)\((.*?)\)", re.DOTALL)
+		#from bson.json_util import loads
 
 		try:
 			while True:
-				tmp_value = pyperclip.paste()
-				if tmp_value != recent_value:
-					recent_value = tmp_value
-					try:
-						j = json.loads(tmp_value)
 
-						if isinstance(j, list):
-							if len(j) == 1:
-								j = j[0]
-							else:
-								scol = None
-								stack = args.get("stack", 20)
-								i = 1
-								for d in j:
-									if (dd := self._check_adapt(d)):
-										if scol is None:
-											scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
-										i += 1
-										scol.add_svg_plot(SVGPlot(dd)) # type: ignore
-										if i % stack == 0:
-											self.show_collection(scol)
-											scol = SVGCollection()
-								if scol and scol._svgs:
-									self.show_collection(scol)
-								continue
-						if (d := self._check_adapt(j)):
-							self.show_svg_plot(SVGPlot(d), args) # type: ignore
+				tmp_value = pyperclip.paste()
+
+				if tmp_value != recent_value:
+
+					recent_value = tmp_value
+
+					try:
+
+						# if pattern.match(tmp_value): # no time to check why it doesn't work
+						if "NumberLong" in tmp_value or "ObjectId" in tmp_value:
+							j = json.loads(
+								re.sub(pattern, r"\1", tmp_value)
+							)
+						else:
+							j = json.loads(tmp_value)
+
+						if (
+							(isinstance(j, dict) and 'svg' not in j) or
+							(isinstance(j, list) and len(j) > 0 and 'svg' not in j[0])
+						):
+							plots: list[dict] = []
+							walk_and_process_dict(
+								arg = j,
+								callback = self._gather_plots,
+								match = ['plot'],
+								plots = plots,
+								args = args
+							)
+							if plots:
+								scol = self._handle_json(plots, args, scol)
+						else:
+							scol = self._handle_json(j, args, scol)
 					except KeyboardInterrupt:
 						raise
+					except json.decoder.JSONDecodeError:
+						if args.get("debug"):
+							print("JSONDecodeError")
+						elif args.get("debug"):
+							import traceback
+							print(traceback.format_exc())
+							print(tmp_value)
 					except Exception:
+						if args.get("debug"):
+							import traceback
+							print(traceback.format_exc())
 						pass
 
 				time.sleep(0.2)
@@ -301,6 +337,56 @@ class PlotCommand(AbsCoreCommand):
 			import sys
 			print("\nUntil next time...\n")
 			sys.exit(0)
+
+
+	def _handle_json(self, j: Union[dict, list[dict]], args, scol: SVGCollection) -> SVGCollection:
+
+		if isinstance(j, dict) and (pressed or len(scol._svgs) > 0):
+			j = [j]
+
+		if isinstance(j, list):
+			if len(j) == 1 and (not pressed and len(scol._svgs) == 0):
+				j = j[0]
+			else:
+				stack = args.get("stack", 20) or 20
+				i = 1
+				for d in j:
+					if (dd := self._check_adapt(d)):
+						i += 1
+						splot = SVGPlot(dd) # type: ignore
+						print(f"Adding {splot._record['name']}")
+						scol.add_svg_plot(splot)
+						if i % stack == 0:
+							print(f"Showing collection ({len(scol._svgs)} figures)")
+							self.show_collection(scol)
+							scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
+				if scol and scol._svgs and not pressed:
+					self.show_collection(scol)
+					scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
+
+				return scol
+
+		if (d := self._check_adapt(j)): # type: ignore[assignment]
+			splot = SVGPlot(d) # type: ignore
+			print(f"Showing {splot._record['name']}")
+			self.show_svg_plot(splot, args) # type: ignore
+
+		return scol
+
+
+	def _gather_plots(self, path, k, d, **kwargs) -> None:
+		""" Used by walk_and_process_dict(...) """
+
+		if isinstance(d[k], dict):
+			#if kwargs['args'].get('verbose'):
+			print(f"Found {path}.{k}: {d[k]['name']}")
+			kwargs['plots'].append(d[k])
+
+		elif isinstance(d[k], list):
+			for i, el in enumerate(d[k]):
+				#if kwargs['args'].get('verbose'):
+				print(f"Found {path}.{k}.{i}: {d[k][i]['name']}")
+				kwargs['plots'].append(el)
 	
 
 	def show_svg_plot(self, svg: SVGPlot, args: dict[str, Any]) -> None:
@@ -355,6 +441,6 @@ class PlotCommand(AbsCoreCommand):
 	def _check_adapt(self, j: Any) -> Optional[SVGPlot]:
 		if not isinstance(j, dict) or 'svg' not in j:
 			return None
-		if '$binary' in j['svg']:
+		if isinstance(j['svg'], dict) and '$binary' in j['svg']:
 			j['svg'] = base64.b64decode(j['svg']['$binary'])
 		return j # type: ignore
