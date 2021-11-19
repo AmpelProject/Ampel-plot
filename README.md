@@ -17,7 +17,7 @@ Dependencies: *ampel-plot*, *pyvips*, *clipboard*, *pynput*
 
 # Ampel-plot-cli
 
-make the ampel CLI command `ampel plot` available
+makes the ampel CLI command `ampel plot` available
 
 Dependencies: *ampel-plot*, *ampel-core*
 
