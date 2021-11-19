@@ -4,14 +4,16 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 22.10.2021
+# Last Modified Date: 18.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import os
 from typing import Optional, Sequence, Union, List
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
-from ampel.plot.utils import rescale, to_png, decompress_svg_dict
+from ampel.plot.util.load import decompress_svg_dict
+from ampel.plot.util.transform import svg_to_png_html, rescale_str
+
 
 class SVGPlot:
 
@@ -27,20 +29,10 @@ class SVGPlot:
 		else:
 			self._record = content
 
-		self._scale = 1.0
 		self._tags = content['tag']
 		self._title_left_padding = title_left_padding
 		self._center = center
 		self._doc_tags = doc_tags
-
-
-	def rescale(self, scale: float = 1.0) -> None:
-
-		if self._scale == scale:
-			return
-
-		self._record['svg'] = rescale(self._record['svg'], scale) # type: ignore # later
-		self._scale = scale
 
 
 	def has_tag(self, tag: Tag) -> bool:
@@ -88,15 +80,22 @@ class SVGPlot:
 		return ret + '</h3>'
 
 
+	def get(self, scale: float = 1.0) -> str:
+		if scale == 1.0:
+			return self._record['svg'] # type: ignore[return-value]
+		return rescale_str(self._record['svg'], scale) # type: ignore
+
+
 	def _repr_html_(self,
-		scale: Optional[float] = None, show_title: bool = True,
+		scale: float = 1.0, show_title: bool = True,
 		title_prefix: Optional[str] = None, title_on_top: bool = False,
 		show_tags: bool = False, tags_on_top: bool = False,
 		include_doc_tags: bool = False, padding_bottom: int = 0,
-		png_convert: bool = False
+		png_convert: Optional[int] = None
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used
+		:param png_convert: DPI value of the produced image
 		"""
 
 		html = "<center>" if self._center else ""
@@ -114,16 +113,13 @@ class SVGPlot:
 		if isinstance(self._record['svg'], bytes):
 			raise ValueError("SVGRecord should not be compressed")
 
-		if scale is not None and isinstance(scale, (float, int)):
-			if png_convert:
-				html += to_png(
-					rescale(self._record['svg'], scale),
-					dpi=png_convert
-				)
-			else:
-				html += rescale(self._record['svg'], scale)
+		if png_convert:
+			html += svg_to_png_html(self._record['svg'], scale=scale, dpi=png_convert)
 		else:
-			html += to_png(self._record['svg'], dpi=png_convert) if png_convert else self._record['svg']
+			if scale == 1.0:
+				html += self._record['svg']
+			else:
+				html += rescale_str(self._record['svg'], scale=scale)
 
 		html += '</div>'
 
