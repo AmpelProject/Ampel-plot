@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/main/ampel/model/PlotProperties.py
+# File              : Ampel-plot/ampel-plot/ampel/model/PlotProperties.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 12.02.2021

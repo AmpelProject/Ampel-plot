@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/cli/ampel/cli/PlotCommand.py
+# File              : Ampel-plot/ampel-plot-cli/ampel/cli/PlotCommand.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.03.2021
-# Last Modified Date: 16.11.2021
+# Last Modified Date: 19.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Sequence, Any, Optional, Union
@@ -20,7 +20,10 @@ from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
 from ampel.plot.SVGQuery import SVGQuery
-from ampel.plot.util.cli import read_from_clipboard, show_collection, show_svg_plot
+from ampel.model.PlotBrowseOptions import PlotBrowseOptions
+from ampel.plot.util.clipboard import read_from_clipboard
+from ampel.plot.util.show import show_collection, show_svg_plot
+
 
 h = {
 	"show": "Display ampel plots retrieved via DB query(ies)",
@@ -45,6 +48,7 @@ h = {
 	"stack": "stack <n> images into one html structure (activates html option). Default: 100",
 	"out": "path to file (printed to stdout otherwise)",
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
+	"one-db": "Whether the target ampel DB was created with flag one-db",
 	"tight": "Tight layout",
 	"verbose": "increases verbosity",
 	"debug": "debug"
@@ -90,6 +94,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'latest-doc', action="store_true")
 		builder.add_arg('optional', 'tight', action="store_true")
 		builder.add_arg('show|save.optional', "db", type=str, nargs="+")
+		builder.add_arg('show|save.optional', "one-db", action="store_true")
 
 		# Optional mutually exclusive args
 		builder.add_x_args('optional',
@@ -115,7 +120,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.match', "custom-match", metavar="#", action=LoadJSONAction)
 
 		builder.add_example('show', "-stack -300 -t2")
-		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc")
+		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc -db HelloAmpel -one-db")
 		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2 -tight")
 		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
 		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
@@ -134,8 +139,10 @@ class PlotCommand(AbsCoreCommand):
 
 		if sub_op == "read":
 			from ampel.plot.util.keyboard import InlinePynput
+			ipo = InlinePynput()
 			read_from_clipboard(
-				args, keyboard_callback=InlinePynput().is_ctrl_pressed
+				PlotBrowseOptions(**args),
+				keyboard_callback = ipo.is_ctrl_pressed
 			)
 
 		stack = args.get("stack")
@@ -150,10 +157,18 @@ class PlotCommand(AbsCoreCommand):
 			for el in db_prefixes:
 				config._config['mongo']['prefix'] = el
 				dbs.append(
-					self.get_db(config, vault, require_existing_db=True)
+					self.get_db(
+						config, vault, require_existing_db=True,
+						one_db=args.get('one_db', False)
+					)
 				)
 		else:
-			dbs = [self.get_db(config, vault, require_existing_db=True)]
+			dbs = [
+				self.get_db(
+					config, vault, require_existing_db=True,
+					one_db=args.get('one_db', False)
+				)
+			]
 			
 		if (x := args.get('base_path')) and not x.startswith("body."):
 			raise ValueError("Option 'base-path' must start with 'body.'")
@@ -234,20 +249,21 @@ class PlotCommand(AbsCoreCommand):
 			i = 1
 			for v in loader._plots.values():
 
+				pbo = PlotBrowseOptions(**args)
 				if stack:
 					for svg in v._svgs:
 						if len(dbs) > 1:
 							svg._record['title'] += f"\n<span style='color: steelblue'>{db.prefix}</span>"
 						scol.add_svg_plot(svg)
 						if i % stack == 0:
-							show_collection(scol)
+							show_collection(scol, pbo, print_func=print)
 							scol = SVGCollection()
 				else:
 					for svg in v._svgs:
-						show_svg_plot(svg, args)
+						show_svg_plot(svg, pbo)
 
 		if stack:
-			show_collection(scol)
+			show_collection(scol, PlotBrowseOptions(**args), print_func=print)
 
 		if i == 1:
 			AmpelLogger.get_logger().info("No plot matched")

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/main/ampel/plot/SVGPlot.py
+# File              : Ampel-plot/ampel-plot-browse/ampel/plot/SVGPlot.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 18.11.2021
+# Last Modified Date: 19.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import os
