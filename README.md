@@ -10,17 +10,17 @@ Dependencies: *ampel-interface*, *matplotlib*
 # Ampel-plot-browse
 
 provides:
-- tools for browsing and visualizing plots directly from the DB
+- tools for visualizing plots
 - methods for manipulating SVG structures (rescaling, conversions)
 
 Dependencies: *ampel-plot*, *pyvips*, *clipboard*, *pynput*
 
 # Ampel-plot-cli
 
-makes the ampel CLI command `ampel plot` available
+makes the ampel CLI command `ampel plot` available which allows to fetch and render plots from DB
 
 Dependencies: *ampel-plot*, *ampel-core*
 
 # Ampel-plot-app
 
-provides a standalone GUI app providing similar functionality to `ampel plot read` 
+provides a standalone GUI app providing similar functionality to `ampel plot read`
