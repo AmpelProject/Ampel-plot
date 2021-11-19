@@ -4,11 +4,11 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 14.09.2021
+# Last Modified Date: 18.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, List
-from ampel.plot.utils import decompress_svg_dict
+from ampel.plot.util.load import decompress_svg_dict
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
 
@@ -16,8 +16,7 @@ from ampel.content.SVGRecord import SVGRecord
 class SVGCollection:
 
 	def __init__(self,
-		title: str = None, scale: float = 1.0,
-		inter_padding: int = 100, center: bool = True
+		title: str = None, inter_padding: int = 100, center: bool = True
 	) -> None:
 		"""
 		:param title: title of this collection
@@ -26,20 +25,8 @@ class SVGCollection:
 		"""
 		self._svgs: List[SVGPlot] = []
 		self._col_title = title
-		self._scale = scale
 		self._inter_padding = inter_padding
 		self._center = center
-
-
-	def rescale(self, scale: float = 1.0) -> None:
-		"""
-		:param float scale: scale factor for all SVGs (default: 1.0)
-		"""
-		if self._scale == scale:
-			return
-		for el in self._svgs:
-			el.rescale(scale)
-		self._scale = scale
 
 
 	def set_inter_padding(self, inter_padding: int) -> None:
@@ -89,11 +76,11 @@ class SVGCollection:
 		return self._svgs
 
 
-	def _repr_html_(
-		self, scale: Optional[float] = None, show_col_title: bool = True,
+	def _repr_html_(self,
+		scale: float = 1.0, show_col_title: bool = True,
 		title_prefix: Optional[str] = None, show_svg_titles: bool = True,
 		hide_if_empty: bool = True,
-		png_convert: bool = False,
+		png_convert: Optional[int] = None,
 		inter_padding: Optional[int] = None,
 		flexbox_wrap: bool = True
 	) -> Optional[str]:
