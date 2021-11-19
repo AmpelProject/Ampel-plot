@@ -21,5 +21,5 @@ setup(
 			'*.yml', '**/*.yml', '**/**/*.yml'
 		]
 	},
-	install_requires = ["matplotlib"]
+	extras_require={"MPL": ["matplotlib"]},
 )
