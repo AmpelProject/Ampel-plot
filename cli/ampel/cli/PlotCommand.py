@@ -4,11 +4,9 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.03.2021
-# Last Modified Date: 08.11.2021
+# Last Modified Date: 16.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-import os, webbrowser, tempfile, hashlib, base64
-from cairosvg import svg2png
 from typing import Sequence, Any, Optional, Union
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -18,12 +16,11 @@ from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
 from ampel.cli.utils import maybe_load_idmapper
-from ampel.util.mappings import walk_and_process_dict
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
 from ampel.plot.SVGQuery import SVGQuery
-from ampel.plot.SVGPlot import SVGPlot
+from ampel.plot.util.cli import read_from_clipboard, show_collection, show_svg_plot
 
 h = {
 	"show": "Display ampel plots retrieved via DB query(ies)",
@@ -136,7 +133,10 @@ class PlotCommand(AbsCoreCommand):
 	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: Optional[str] = None) -> None:
 
 		if sub_op == "read":
-			self.read_from_clipboard(args)
+			from ampel.plot.util.keyboard import InlinePynput
+			read_from_clipboard(
+				args, keyboard_callback=InlinePynput().is_ctrl_pressed
+			)
 
 		stack = args.get("stack")
 		limit = args.get("limit") or 0
@@ -240,207 +240,14 @@ class PlotCommand(AbsCoreCommand):
 							svg._record['title'] += f"\n<span style='color: steelblue'>{db.prefix}</span>"
 						scol.add_svg_plot(svg)
 						if i % stack == 0:
-							self.show_collection(scol)
+							show_collection(scol)
 							scol = SVGCollection()
 				else:
 					for svg in v._svgs:
-						self.show_svg_plot(svg, args)
+						show_svg_plot(svg, args)
 
 		if stack:
-			self.show_collection(scol)
+			show_collection(scol)
 
 		if i == 1:
 			AmpelLogger.get_logger().info("No plot matched")
-
-
-	def read_from_clipboard(self, args: dict[str, Any]) -> None:
-		"""
-		Note: method never returns: CTRL-C required
-		"""
-
-		import json, time, pyperclip, re  # type: ignore
-		from pynput import keyboard # type: ignore
-		recent_value = ""
-		scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
-
-		def on_press(key):
-			global pressed
-			if not pressed and key == keyboard.Key.ctrl: # only if key is not held
-				pressed = True # key is held
-
-		def on_release(key):
-			global pressed
-			if key == keyboard.Key.ctrl:
-				pressed = False # key is released
-
-		listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-		listener.start()
-
-		print("Monitoring clipboard...")
-		pyperclip.copy('')
-		pattern = re.compile(r"(?:NumberLong|ObjectId)\((.*?)\)", re.DOTALL)
-		#from bson.json_util import loads
-
-		try:
-			while True:
-
-				tmp_value = pyperclip.paste()
-
-				if tmp_value != recent_value:
-
-					recent_value = tmp_value
-
-					try:
-
-						# if pattern.match(tmp_value): # no time to check why it doesn't work
-						if "NumberLong" in tmp_value or "ObjectId" in tmp_value:
-							j = json.loads(
-								re.sub(pattern, r"\1", tmp_value)
-							)
-						else:
-							j = json.loads(tmp_value)
-
-						if (
-							(isinstance(j, dict) and 'svg' not in j) or
-							(isinstance(j, list) and len(j) > 0 and 'svg' not in j[0])
-						):
-							plots: list[dict] = []
-							walk_and_process_dict(
-								arg = j,
-								callback = self._gather_plots,
-								match = ['plot'],
-								plots = plots,
-								args = args
-							)
-							if plots:
-								scol = self._handle_json(plots, args, scol)
-						else:
-							scol = self._handle_json(j, args, scol)
-					except KeyboardInterrupt:
-						raise
-					except json.decoder.JSONDecodeError:
-						if args.get("debug"):
-							print("JSONDecodeError")
-						elif args.get("debug"):
-							import traceback
-							print(traceback.format_exc())
-							print(tmp_value)
-					except Exception:
-						if args.get("debug"):
-							import traceback
-							print(traceback.format_exc())
-						pass
-
-				time.sleep(0.2)
-
-		except KeyboardInterrupt:
-			import sys
-			print("\nUntil next time...\n")
-			sys.exit(0)
-
-
-	def _handle_json(self, j: Union[dict, list[dict]], args, scol: SVGCollection) -> SVGCollection:
-
-		if isinstance(j, dict) and (pressed or len(scol._svgs) > 0):
-			j = [j]
-
-		if isinstance(j, list):
-			if len(j) == 1 and (not pressed and len(scol._svgs) == 0):
-				j = j[0]
-			else:
-				stack = args.get("stack", 20) or 20
-				i = 1
-				for d in j:
-					if (dd := self._check_adapt(d)):
-						i += 1
-						splot = SVGPlot(dd) # type: ignore
-						print(f"Adding {splot._record['name']}")
-						scol.add_svg_plot(splot)
-						if i % stack == 0:
-							print(f"Showing collection ({len(scol._svgs)} figures)")
-							self.show_collection(scol)
-							scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
-				if scol and scol._svgs and not pressed:
-					self.show_collection(scol)
-					scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
-
-				return scol
-
-		if (d := self._check_adapt(j)): # type: ignore[assignment]
-			splot = SVGPlot(d) # type: ignore
-			print(f"Showing {splot._record['name']}")
-			self.show_svg_plot(splot, args) # type: ignore
-
-		return scol
-
-
-	def _gather_plots(self, path, k, d, **kwargs) -> None:
-		""" Used by walk_and_process_dict(...) """
-
-		if isinstance(d[k], dict):
-			#if kwargs['args'].get('verbose'):
-			print(f"Found {path}.{k}: {d[k]['name']}")
-			kwargs['plots'].append(d[k])
-
-		elif isinstance(d[k], list):
-			for i, el in enumerate(d[k]):
-				#if kwargs['args'].get('verbose'):
-				print(f"Found {path}.{k}.{i}: {d[k][i]['name']}")
-				kwargs['plots'].append(el)
-	
-
-	def show_svg_plot(self, svg: SVGPlot, args: dict[str, Any]) -> None:
-
-		tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
-		if not os.path.exists(tmp_dir):
-			os.mkdir(tmp_dir)
-
-		path = os.path.join(tmp_dir, svg.get_file_name())
-
-		if args.get("png"):
-			path = path.removesuffix(".svg") + ".png"
-			with open(path, 'wb') as fb:
-				fb.write(svg2png(bytestring=svg._record['svg'], dpi=args.get("png")))
-
-		elif args.get("html"):
-			path = path.removesuffix(".svg") + ".html"
-			with open(path, 'w') as fh:
-				fh.write(svg._repr_html_())
-
-		else:
-			with open(path, 'w') as ft:
-				ft.write(svg._record['svg']) # type: ignore[arg-type]
-
-		webbrowser.open('file://' + path)
-
-
-	def show_collection(self, scol: SVGCollection) -> None:
-
-		if x := scol._repr_html_():
-
-			tmp_file = os.path.join(
-				self._get_ampel_tmp_dir(),
-				hashlib.md5(x.encode('utf8')).hexdigest() + ".html"
-			)
-
-			with open(tmp_file, 'w') as fh:
-				fh.write(x)
-
-			webbrowser.open('file://' + tmp_file)
-		else:
-			AmpelLogger.get_logger().info("Empty collection: nothing to display")
-
-
-	def _get_ampel_tmp_dir(self) -> str:
-		tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
-		if not os.path.exists(tmp_dir):
-			os.mkdir(tmp_dir)
-		return tmp_dir
-
-
-	def _check_adapt(self, j: Any) -> Optional[SVGPlot]:
-		if not isinstance(j, dict) or 'svg' not in j:
-			return None
-		if isinstance(j['svg'], dict) and '$binary' in j['svg']:
-			j['svg'] = base64.b64decode(j['svg']['$binary'])
-		return j # type: ignore
