@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 22.10.2021
+# Last Modified Date: 16.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
@@ -18,7 +18,7 @@ from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.plot.T2SVGQuery import T2SVGQuery
 from ampel.plot.SVGCollection import SVGCollection
-from ampel.util.mappings import walk_and_process_dict
+from ampel.util.recursion import walk_and_process_dict
 from ampel.model.operator.AnyOf import AnyOf
 from ampel.model.operator.AllOf import AllOf
 from ampel.model.operator.OneOf import OneOf
