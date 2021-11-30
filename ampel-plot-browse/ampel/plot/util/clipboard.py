@@ -4,16 +4,22 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 16.11.2021
-# Last Modified Date: 19.11.2021
+# Last Modified Date: 22.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-import base64, json, time, pyperclip, re  # type: ignore
+import platform, base64, json, time, re, gc # type: ignore[import]
 from typing import Any, Optional, Union
 from ampel.util.recursion import walk_and_process_dict
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.show import show_collection, show_svg_plot
+
+if platform.system() == 'Darwin':
+	import AppKit # type: ignore[import] # noqa
+else:
+	import pyperclip # type: ignore[import] # noqa
+
 
 print_func = print
 def set_print(pf: Any) -> None:
@@ -34,7 +40,7 @@ def read_from_clipboard(
 	recent_value = ""
 	scol = _new_col(pbo)
 
-	pyperclip.copy('')
+
 	pattern = re.compile(r"(?:NumberLong|ObjectId)\((.*?)\)", re.DOTALL)
 	#from bson.json_util import loads
 
@@ -44,15 +50,24 @@ def read_from_clipboard(
 	gui_callback()
 	print_func("Monitoring clipboard...")
 
+	if platform.system() == 'Darwin':
+		board = AppKit.NSPasteboard.generalPasteboard()
+		get_cbc = lambda: board.changeCount()
+	else:
+		pyperclip.copy('')
+		get_cbc = pyperclip.paste()
+
 	try:
 		while True:
 
-			tmp_value = pyperclip.paste()
+			tmp_value = get_cbc()
 			gui_callback()
 
 			if tmp_value != recent_value:
 
 				recent_value = tmp_value
+				if platform.system() == 'Darwin':
+					tmp_value = board.stringForType_(AppKit.NSStringPboardType)
 
 				try:
 
@@ -84,6 +99,7 @@ def read_from_clipboard(
 							scol = _handle_json(plots, pbo, scol, ctrl_pressed)
 					else:
 						scol = _handle_json(j, pbo, scol, ctrl_pressed)
+					gc.collect()
 				except KeyboardInterrupt:
 					raise
 				except json.decoder.JSONDecodeError:
