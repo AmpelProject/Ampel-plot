@@ -99,7 +99,13 @@ class SVGPlot:
 		"""
 
 		html = "<center>" if self._center else ""
-		html += '<div style="padding-bottom: %ipx">' % padding_bottom
+		html += '<div style="padding-bottom: %ipx" class="%s">' % (
+			padding_bottom,
+			"PLOT" if not self._tags else " ".join(
+				str(el) if isinstance(el, int) else el
+				for el in ([self._tags] if isinstance(self._tags, (int, str)) else self._tags)
+			) + " PLOT"
+		)
 
 		if show_title and title_on_top:
 			html += self._get_title(title_prefix)
