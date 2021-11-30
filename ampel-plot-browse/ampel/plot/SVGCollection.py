@@ -4,7 +4,7 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 13.06.2019
-# Last Modified Date: 19.11.2021
+# Last Modified Date: 30.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Optional, List
@@ -16,7 +16,9 @@ from ampel.content.SVGRecord import SVGRecord
 class SVGCollection:
 
 	def __init__(self,
-		title: str = None, inter_padding: int = 100, center: bool = True
+		title: str = None,
+		inter_padding: int = 100,
+		center: bool = True
 	) -> None:
 		"""
 		:param title: title of this collection
@@ -82,7 +84,8 @@ class SVGCollection:
 		hide_if_empty: bool = True,
 		png_convert: Optional[int] = None,
 		inter_padding: Optional[int] = None,
-		flexbox_wrap: bool = True
+		flexbox_wrap: bool = True,
+		full_html: bool = True
 	) -> Optional[str]:
 		"""
 		:param scale: if None, native scaling is used
@@ -91,7 +94,89 @@ class SVGCollection:
 		if hide_if_empty and not self._svgs:
 			return None
 
-		html = "<center>" if self._center else ""
+		if full_html:
+			# TODO: put this in a file, update package data and access it via pkg_resources
+			html = """
+			<html>
+			<body>
+
+			<div id=tagfilter style='display: block'>
+				<input id=tags type='text' placeholder="tags" style="width: 100px"/>
+				<button onclick="show_only()">Show</button>
+				<button onclick="toggle_div()">Toggle</button>
+				<button onclick="show_all()">Clear</button>
+				<button id=tightbtn onclick="tight()">Tight</button>
+				<button id=tightbtn onclick="toggle_titles()">Titles</button>
+			<div>
+
+			<script>
+
+				function toggle_div() {
+					tags = document.getElementById('tags').value.split(" ");
+					for (var y = 0; y < tags.length; y++) {
+						var plots = document.getElementsByClassName(tags[y]);
+						for (var i = 0; i < plots.length; i++) {
+							if (plots[i].style.display === "none")
+								plots[i].style.display = "block";
+							else
+								plots[i].style.display = "none";
+						}
+					}
+				}
+
+				function show_only() {
+					var plots = document.getElementsByClassName("PLOT");
+					tags = document.getElementById('tags').value.split(" ");
+					for (var i = 0; i < plots.length; i++) {
+						var found = false;
+						for (var j=0; j < tags.length; j++) {
+							if (plots[i].classList.contains(tags[j].toUpperCase())) {
+								plots[i].style.display = "block";
+								found = true;
+							}
+						}
+						if (!found)
+							plots[i].style.display = "none";
+					}
+				}
+
+				function show_all() {
+					var plots = document.getElementsByClassName("PLOT");
+					for (var i=0; i < plots.length; i ++) {
+						if (plots[i].style.display === "none")
+							plots[i].style.display = "block";
+					}
+				}
+
+				function tight() {
+					var plots = document.getElementsByClassName("PLOT");
+					for (var i=0; i < plots.length; i ++)
+						plots[i].style.paddingBottom = "0px";
+					document.getElementById("tightbtn").style.display = "none";
+				}
+
+				function toggle_titles() {
+					var h3s = document.getElementsByTagName("h3");
+					for (var i=0; i < h3s.length; i ++)
+						if (h3s[i].style.display === "none")
+							h3s[i].style.display = "block";
+						else
+							h3s[i].style.display = "none";
+				}
+
+				document.getElementById("tags")
+					.addEventListener("keyup", function(event) {
+						event.preventDefault();
+						if (event.keyCode === 13)
+							show_only();
+					}
+				);
+			</script>
+			"""
+		else:
+			html = ""
+
+		html += "<center>" if self._center else ""
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
 
 		if show_col_title and self._col_title:
@@ -115,9 +200,14 @@ class SVGCollection:
 			)
 
 		if flexbox_wrap:
-			return html + "</div></center>" if self._center else html + "</div>"
-		else:
-			return html + "</center>" if self._center else html
+			html += "</div></center>" if self._center else "</div>"
+		elif self._center:
+			html += "</center>"
+
+		if full_html:
+			html += "</body><html>"
+
+		return html
 
 
 	def show_html(self, **kwargs):
