@@ -72,7 +72,7 @@ def read_from_clipboard(
 				try:
 
 					# if pattern.match(tmp_value): # no time to check why it doesn't work
-					if tmp_value and "NumberLong" in tmp_value or "ObjectId" in tmp_value:
+					if tmp_value and ("NumberLong" in tmp_value or "ObjectId" in tmp_value):
 						j = json.loads(
 							re.sub(pattern, r"\1", tmp_value)
 						)
