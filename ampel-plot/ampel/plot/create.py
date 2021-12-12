@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/main/ampel/plot/util/create.py
+# File              : Ampel-plot/ampel-plot/ampel/plot/create.py
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 17.05.2019
-# Last Modified Date: 16.11.2021
+# Last Modified Date: 09.12.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 import io
@@ -17,10 +17,11 @@ from ampel.content.SVGRecord import SVGRecord
 from ampel.protocol.LoggerProtocol import LoggerProtocol
 from ampel.model.PlotProperties import PlotProperties
 from ampel.util.compression import compress as fcompress
+from ampel.util.tag import merge_tags
 
 
 def mplfig_to_svg_dict(
-	mpl_fig, file_name: str, title: Optional[str] = None, tags: Optional[Union[Tag, List[Tag]]] = None,
+	mpl_fig: Figure, file_name: str, title: Optional[str] = None, tags: Optional[Union[Tag, List[Tag]]] = None,
 	compress: int = 1, width: Optional[int] = None, height: Optional[int] = None,
 	close: bool = True, fig_include_title: Optional[bool] = False, logger: Optional[LoggerProtocol] = None
 ) -> SVGRecord:
@@ -90,7 +91,7 @@ def mplfig_to_svg_dict1(
 		fig_include_title = props.fig_include_title,
 		width = props.width,
 		height = props.height,
-		tags = props.tags if not tag_complement else _merge_tags(props.tags, tag_complement),
+		tags = props.tags if not tag_complement else merge_tags(props.tags, tag_complement),
 		compress = props.get_compress(),
 		logger = logger,
 		close = close
@@ -116,7 +117,7 @@ def get_tags_as_str(
 ) -> str:
 
 	if plot_tag:
-		t = _merge_tags(plot_tag, extra_tags) if extra_tags else plot_tag # type: ignore
+		t = merge_tags(plot_tag, extra_tags) if extra_tags else plot_tag # type: ignore
 	elif extra_tags:
 		t = extra_tags
 	else:
@@ -129,40 +130,3 @@ def get_tags_as_str(
 		str(el) if isinstance(el, int) else el
 		for el in t
 	])
-
-
-def _merge_tags(arg1: Optional[Union[Tag, List[Tag]]], arg2: Union[Tag, List[Tag]]) -> Union[Tag, List[Tag]]:
-	"""
-	Note: not using ampel.util.collections.merge_to_list to avoid Ampel-core dependency
-	"""
-
-	if not arg1:
-		return arg2
-
-	if isinstance(arg1, (str, int)):
-		if isinstance(arg2, (str, int)):
-			if arg2 != arg1:
-				return [arg1, arg2]
-			return arg1
-		else:
-			if arg1 in arg2:
-				return arg2 if isinstance(arg2, list) else list(arg2)
-			l = list(arg2)
-			l.append(arg1)
-			return l
-
-	# arg1 is a list
-	else:
-		if isinstance(arg2, (int, str)):
-			if arg2 in arg1:
-				return arg1 if isinstance(arg1, list) else list(arg1)
-			l = list(arg1)
-			l.append(arg2)
-			return l
-
-		# arg1 and arg2 are list
-		else:
-			return list(
-				(arg1 if isinstance(arg1, set) else set(arg1)) |
-				(arg2 if isinstance(arg2, set) else set(arg2))
-			)
