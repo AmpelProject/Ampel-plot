@@ -7,11 +7,12 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, Sequence, Union, Dict, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
+from collections.abc import Sequence
 from collections import defaultdict
 from string import digits
 
-from ampel.types import StockId, UnitId, Tag, List
+from ampel.types import StockId, UnitId, Tag
 from ampel.core.AmpelDB import AmpelDB
 from ampel.content.SVGRecord import SVGRecord
 from ampel.log.AmpelLogger import AmpelLogger
@@ -61,7 +62,7 @@ class SVGLoader:
 
 	def __init__(self,
 		db: AmpelDB,
-		queries: Optional[List[SVGQuery]] = None,
+		queries: Optional[list[SVGQuery]] = None,
 		logger: Optional[AmpelLogger] = None,
 		last_body: bool = False,
 		enforce_base_path: bool = False,
@@ -74,8 +75,8 @@ class SVGLoader:
 		self.last_body = last_body
 		self.latest_doc = latest_doc
 		self.enforce_base_path = enforce_base_path
-		self._queries: List[SVGQuery] = []
-		self._plots: Dict[StockId, SVGCollection] = defaultdict(SVGCollection)
+		self._queries: list[SVGQuery] = []
+		self._plots: dict[StockId, SVGCollection] = defaultdict(SVGCollection)
 		self._debug = self.logger and self.logger.verbose > 1
 		
 		if queries:

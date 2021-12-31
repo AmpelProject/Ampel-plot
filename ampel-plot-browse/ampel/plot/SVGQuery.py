@@ -7,7 +7,8 @@
 # Last Modified Date: 19.11.2021
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-from typing import Literal, Optional, Sequence, Dict, Any, Union
+from typing import Literal, Optional, Any, Union
+from collections.abc import Sequence
 from ampel.types import StockId, Tag, UnitId
 from ampel.mongo.schema import apply_schema, apply_excl_schema
 from ampel.model.operator.AnyOf import AnyOf
@@ -17,7 +18,7 @@ from ampel.model.operator.OneOf import OneOf
 
 class SVGQuery:
 
-	_query: Dict[str, Any]
+	_query: dict[str, Any]
 	col: Literal["t0", "t1", "t2", "t3"]
 	path: str
 	tags: Optional[Union[Tag, Sequence[Tag]]]
@@ -29,13 +30,13 @@ class SVGQuery:
 		config: Optional[int] = None,
 		stock: Union[None, StockId, Sequence[StockId]] = None,
 		doc_tag: Optional[
-			Dict[
+			dict[
 				Literal['with', 'without'],
 				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 			]
 		] = None,
 		plot_tag: Optional[
-			Dict[
+			dict[
 				Literal['with', 'without'],
 				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 			]
@@ -46,7 +47,7 @@ class SVGQuery:
 		self.path = path
 		self.col = col
 		self.plot_tag: Optional[
-			Dict[
+			dict[
 				Literal['with', 'without'],
 				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 			]
@@ -71,7 +72,7 @@ class SVGQuery:
 			self._query.update(custom_match)
 
 
-	def get_query(self) -> Dict[str, Any]:
+	def get_query(self) -> dict[str, Any]:
 		return self._query
 
 
@@ -84,7 +85,7 @@ class SVGQuery:
 
 
 	def set_doc_tag(self,
-		tag: Dict[
+		tag: dict[
 			Literal['with', 'without'],
 			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 		]
@@ -99,7 +100,7 @@ class SVGQuery:
 
 
 	def set_plot_tag(self,
-		tag: Dict[
+		tag: dict[
 			Literal['with', 'without'],
 			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
 		]

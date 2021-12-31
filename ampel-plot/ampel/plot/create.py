@@ -10,7 +10,7 @@
 import io
 import matplotlib as plt
 from matplotlib.figure import Figure
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, Any, Union
 
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
@@ -21,7 +21,7 @@ from ampel.util.tag import merge_tags
 
 
 def mplfig_to_svg_dict(
-	mpl_fig: Figure, file_name: str, title: Optional[str] = None, tags: Optional[Union[Tag, List[Tag]]] = None,
+	mpl_fig: Figure, file_name: str, title: Optional[str] = None, tags: Optional[Union[Tag, list[Tag]]] = None,
 	compress: int = 1, width: Optional[int] = None, height: Optional[int] = None,
 	close: bool = True, fig_include_title: Optional[bool] = False, logger: Optional[LoggerProtocol] = None
 ) -> SVGRecord:
@@ -76,8 +76,8 @@ def mplfig_to_svg_dict(
 def mplfig_to_svg_dict1(
 	mpl_fig: Figure,
 	props: PlotProperties,
-	extra: Optional[Dict[str, Any]] = None,
-	tag_complement: Optional[Union[Tag, List[Tag]]] = None,
+	extra: Optional[dict[str, Any]] = None,
+	tag_complement: Optional[Union[Tag, list[Tag]]] = None,
 	close: bool = True, logger: Optional[LoggerProtocol] = None
 ) -> SVGRecord:
 	"""
@@ -112,8 +112,8 @@ def mplfig_to_svg_dict1(
 
 
 def get_tags_as_str(
-	plot_tag: Optional[Union[Tag, List[Tag]]] = None,
-	extra_tags: Optional[Union[Tag, List[Tag]]] = None
+	plot_tag: Optional[Union[Tag, list[Tag]]] = None,
+	extra_tags: Optional[Union[Tag, list[Tag]]] = None
 ) -> str:
 
 	if plot_tag:

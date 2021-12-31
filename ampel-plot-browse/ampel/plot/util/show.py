@@ -8,7 +8,8 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, webbrowser, tempfile, hashlib
-from typing import Optional, Callable
+from typing import Optional
+from collections.abc import Callable
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.plot.util.transform import svg_to_png

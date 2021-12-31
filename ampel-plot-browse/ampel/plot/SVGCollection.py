@@ -7,7 +7,7 @@
 # Last Modified Date:  30.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, List
+from typing import Optional
 from ampel.plot.util.load import decompress_svg_dict
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
@@ -25,7 +25,7 @@ class SVGCollection:
 		:param scale: scale factor for all SVGs (default: 1.0)
 		:param inter_padding: sets padding in px between plots of this collection
 		"""
-		self._svgs: List[SVGPlot] = []
+		self._svgs: list[SVGPlot] = []
 		self._col_title = title
 		self._inter_padding = inter_padding
 		self._center = center
@@ -68,7 +68,7 @@ class SVGCollection:
 		)
 
 
-	def get_svgs(self, tag: Optional[str] = None, tags: Optional[List[str]] = None) -> List[SVGPlot]:
+	def get_svgs(self, tag: Optional[str] = None, tags: Optional[list[str]] = None) -> list[SVGPlot]:
 
 		if tag:
 			return [svg for svg in self._svgs if svg.has_tag(tag)]

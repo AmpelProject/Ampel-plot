@@ -8,7 +8,8 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
-from typing import Optional, Sequence, Union, List
+from typing import Optional, Union
+from collections.abc import Sequence
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.util.load import decompress_svg_dict
@@ -21,7 +22,7 @@ class SVGPlot:
 		content: SVGRecord,
 		title_left_padding: int = 0,
 		center: bool = True,
-		doc_tags: Union[None, Tag, List[Tag]] = None
+		doc_tags: Union[None, Tag, list[Tag]] = None
 	):
 
 		if isinstance(content['svg'], bytes):

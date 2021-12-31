@@ -7,7 +7,8 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Sequence, Any, Optional, Union
+from typing import Any, Optional, Union
+from collections.abc import Sequence
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
 from ampel.cli.AmpelArgumentParser import AmpelArgumentParser
