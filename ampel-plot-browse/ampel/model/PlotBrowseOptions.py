@@ -7,7 +7,6 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional
 from ampel.base.AmpelFlexModel import AmpelFlexModel
 
 class PlotBrowseOptions(AmpelFlexModel):
@@ -17,4 +16,4 @@ class PlotBrowseOptions(AmpelFlexModel):
 	tight: bool = False
 	stack: int = 20
 	scale: float = 1.0
-	png: Optional[int] = None
+	png: None | int = None

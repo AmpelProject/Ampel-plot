@@ -8,7 +8,7 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import platform, base64, json, time, re, gc # type: ignore[import]
-from typing import Any, Optional, Union
+from typing import Any
 from ampel.util.recursion import walk_and_process_dict
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGPlot import SVGPlot
@@ -124,7 +124,7 @@ def read_from_clipboard(
 
 
 def _handle_json(
-	j: Union[dict, list[dict]], pbo: PlotBrowseOptions,
+	j: dict | list[dict], pbo: PlotBrowseOptions,
 	scol: SVGCollection, ctrl_pressed: bool = False
 ) -> SVGCollection:
 
@@ -190,7 +190,7 @@ def _gather_plots(path, k, d, **kwargs) -> None:
 			kwargs['plots'].append(el)
 	
 
-def _check_adapt(j: Any) -> Optional[SVGPlot]:
+def _check_adapt(j: Any) -> None | SVGPlot:
 	if not isinstance(j, dict) or 'svg' not in j:
 		return None
 	if isinstance(j['svg'], dict) and '$binary' in j['svg']:

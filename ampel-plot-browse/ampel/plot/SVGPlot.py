@@ -8,7 +8,6 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
-from typing import Optional, Union
 from collections.abc import Sequence
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
@@ -22,7 +21,7 @@ class SVGPlot:
 		content: SVGRecord,
 		title_left_padding: int = 0,
 		center: bool = True,
-		doc_tags: Union[None, Tag, list[Tag]] = None
+		doc_tags: None | Tag | list[Tag] = None
 	):
 
 		if isinstance(content['svg'], bytes):
@@ -63,7 +62,7 @@ class SVGPlot:
 			f.write("</body></html>")
 		
 
-	def _get_title(self, title_prefix: Optional[str] = None) -> str:
+	def _get_title(self, title_prefix: None | str = None) -> str:
 		return '<h3 style="padding-left:%ipx;line-height:20pt">%s %s</h3>' % (
 			self._title_left_padding,
 			"" if title_prefix is None else title_prefix,
@@ -89,10 +88,10 @@ class SVGPlot:
 
 	def _repr_html_(self,
 		scale: float = 1.0, show_title: bool = True,
-		title_prefix: Optional[str] = None, title_on_top: bool = False,
+		title_prefix: None | str = None, title_on_top: bool = False,
 		show_tags: bool = False, tags_on_top: bool = False,
 		include_doc_tags: bool = False, padding_bottom: int = 0,
-		png_convert: Optional[int] = None
+		png_convert: None | int = None
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used

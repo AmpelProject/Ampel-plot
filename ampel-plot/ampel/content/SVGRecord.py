@@ -7,7 +7,7 @@
 # Last Modified Date:  22.02.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Union, TypedDict
+from typing import TypedDict
 from collections.abc import Sequence
 from ampel.types import Tag
 
@@ -17,7 +17,7 @@ class SVGRecord(TypedDict, total=False):
 	Dict crafted by :class:`~ampel.plot.utils.mplfig_to_svg_dict`
 	"""
 	name: str
-	tag: Union[Tag, Sequence[Tag]]
+	tag: Tag | Sequence[Tag]
 	title: str
-	svg: Union[bytes, str] # bytes means compressed svg
+	svg: bytes | str # bytes means compressed svg
 	svg_str: str

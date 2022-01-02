@@ -7,7 +7,7 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Any, Optional, Union
+from typing import Any
 from collections.abc import Sequence
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -62,7 +62,7 @@ class PlotCommand(AbsCoreCommand):
 		self.parsers = {}
 
 	# Mandatory implementation
-	def get_parser(self, sub_op: Optional[str] = None) -> Union[ArgumentParser, AmpelArgumentParser]:
+	def get_parser(self, sub_op: None | str = None) -> ArgumentParser | AmpelArgumentParser:
 
 		if sub_op in self.parsers:
 			return self.parsers[sub_op]
@@ -136,7 +136,7 @@ class PlotCommand(AbsCoreCommand):
 
 
 	# Mandatory implementation
-	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: Optional[str] = None) -> None:
+	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: None | str = None) -> None:
 
 		if sub_op == "read":
 			from ampel.plot.util.keyboard import InlinePynput

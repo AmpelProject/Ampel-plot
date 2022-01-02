@@ -7,7 +7,7 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, Any
+from typing import Any
 from ampel.plot.SVGLoader import SVGLoader
 from IPython.display import HTML, display
 import random
@@ -20,7 +20,7 @@ class SVGBrowser:
 
 	def __init__(self,
 		svg_loader: SVGLoader,
-		scale: Optional[float] = None,
+		scale: None | float = None,
 		show_col_title: bool = True,
 		show_svg_titles: bool = True,
 		show_multi_stock: bool = False
@@ -108,7 +108,7 @@ class SVGBrowser:
 		return stock_id
 
 
-	def show_inline(self, scale: Optional[float] = None, png_convert: bool = False, inter_padding: int = 0):
+	def show_inline(self, scale: None | float = None, png_convert: bool = False, inter_padding: int = 0):
 
 		html = ""
 		for stock_id in self._svg_loader._plots:

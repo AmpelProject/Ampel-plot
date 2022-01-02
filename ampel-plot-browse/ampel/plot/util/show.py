@@ -8,7 +8,6 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, webbrowser, tempfile, hashlib
-from typing import Optional
 from collections.abc import Callable
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGPlot import SVGPlot
@@ -53,7 +52,7 @@ def show_svg_plot(svg: SVGPlot, pbo: PlotBrowseOptions) -> None:
 	webbrowser.open('file://' + path)
 
 
-def show_collection(scol: SVGCollection, pbo: PlotBrowseOptions, print_func: Optional[Callable] = None) -> None:
+def show_collection(scol: SVGCollection, pbo: PlotBrowseOptions, print_func: None | Callable = None) -> None:
 
 	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png):
 

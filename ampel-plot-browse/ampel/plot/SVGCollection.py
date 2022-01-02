@@ -7,7 +7,6 @@
 # Last Modified Date:  30.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional
 from ampel.plot.util.load import decompress_svg_dict
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
@@ -68,7 +67,7 @@ class SVGCollection:
 		)
 
 
-	def get_svgs(self, tag: Optional[str] = None, tags: Optional[list[str]] = None) -> list[SVGPlot]:
+	def get_svgs(self, tag: None | str = None, tags: None | list[str] = None) -> list[SVGPlot]:
 
 		if tag:
 			return [svg for svg in self._svgs if svg.has_tag(tag)]
@@ -80,13 +79,13 @@ class SVGCollection:
 
 	def _repr_html_(self,
 		scale: float = 1.0, show_col_title: bool = True,
-		title_prefix: Optional[str] = None, show_svg_titles: bool = True,
+		title_prefix: None | str = None, show_svg_titles: bool = True,
 		hide_if_empty: bool = True,
-		png_convert: Optional[int] = None,
-		inter_padding: Optional[int] = None,
+		png_convert: None | int = None,
+		inter_padding: None | int = None,
 		flexbox_wrap: bool = True,
 		full_html: bool = True
-	) -> Optional[str]:
+	) -> None | str:
 		"""
 		:param scale: if None, native scaling is used
 		"""

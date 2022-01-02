@@ -4,12 +4,12 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.06.2019
-# Last Modified Date: 19.11.2021
+# Last Modified Date: 02.01.2022
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
-from typing import Literal, Optional, Any, Union
+from typing import Literal, Any
 from collections.abc import Sequence
-from ampel.types import StockId, Tag, UnitId
+from ampel.types import OneOrMany, StockId, Tag, UnitId
 from ampel.mongo.schema import apply_schema, apply_excl_schema
 from ampel.model.operator.AnyOf import AnyOf
 from ampel.model.operator.AllOf import AllOf
@@ -21,36 +21,30 @@ class SVGQuery:
 	_query: dict[str, Any]
 	col: Literal["t0", "t1", "t2", "t3"]
 	path: str
-	tags: Optional[Union[Tag, Sequence[Tag]]]
+	tags: None | OneOrMany[Tag]
 
 	def __init__(self,
 		col: Literal["t0", "t1", "t2", "t3"],
 		path: str = 'body.data.plot',
-		unit: Optional[UnitId] = None,
-		config: Optional[int] = None,
-		stock: Union[None, StockId, Sequence[StockId]] = None,
-		doc_tag: Optional[
-			dict[
-				Literal['with', 'without'],
-				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
-			]
+		unit: None | UnitId = None,
+		config: None | int = None,
+		stock: OneOrMany[StockId] = None,
+		doc_tag: None | dict[
+			Literal['with', 'without'],
+			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
 		] = None,
-		plot_tag: Optional[
-			dict[
-				Literal['with', 'without'],
-				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
-			]
+		plot_tag: None | dict[
+			Literal['with', 'without'],
+			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
 		] = None,
-		custom_match: Optional[dict] = None
+		custom_match: None | dict = None
 	):
 		self._query = {path: {'$exists': True}}
 		self.path = path
 		self.col = col
-		self.plot_tag: Optional[
-			dict[
-				Literal['with', 'without'],
-				Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
-			]
+		self.plot_tag: None | dict[
+			Literal['with', 'without'],
+			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
 		] = None
 
 		if stock:
@@ -76,7 +70,7 @@ class SVGQuery:
 		return self._query
 
 
-	def set_stock(self, stock: Union[StockId, Sequence[StockId]]) -> None:
+	def set_stock(self, stock: OneOrMany[StockId]) -> None:
 
 		if isinstance(stock, (list, tuple)):
 			self._query['stock'] = {'$in': stock}
@@ -87,7 +81,7 @@ class SVGQuery:
 	def set_doc_tag(self,
 		tag: dict[
 			Literal['with', 'without'],
-			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
 		]
 	) -> None:
 
@@ -102,7 +96,7 @@ class SVGQuery:
 	def set_plot_tag(self,
 		tag: dict[
 			Literal['with', 'without'],
-			Union[Tag, AllOf[Tag], AnyOf[Tag], OneOf[Tag]]
+			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
 		]
 	) -> None:
 

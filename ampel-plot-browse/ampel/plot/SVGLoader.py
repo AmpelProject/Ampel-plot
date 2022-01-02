@@ -7,7 +7,7 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from collections.abc import Sequence
 from collections import defaultdict
 from string import digits
@@ -35,10 +35,10 @@ class SVGLoader:
 	@staticmethod
 	def load_t02(
 		db: AmpelDB,
-		stock: Optional[Union[StockId, Sequence[StockId]]] = None,
-		tag: Optional[Union[Tag, Sequence[Tag]]] = None,
-		t2_unit: Optional[UnitId] = None,
-		t2_config: Optional[int] = None
+		stock: None | StockId | Sequence[StockId] = None,
+		tag: None | Tag | Sequence[Tag] = None,
+		t2_unit: None | UnitId = None,
+		t2_config: None | int = None
 	) -> "SVGLoader":
 
 		t0_query = SVGQuery(
@@ -62,8 +62,8 @@ class SVGLoader:
 
 	def __init__(self,
 		db: AmpelDB,
-		queries: Optional[list[SVGQuery]] = None,
-		logger: Optional[AmpelLogger] = None,
+		queries: None | list[SVGQuery] = None,
+		logger: None | AmpelLogger = None,
 		last_body: bool = False,
 		enforce_base_path: bool = False,
 		limit: int = 0,

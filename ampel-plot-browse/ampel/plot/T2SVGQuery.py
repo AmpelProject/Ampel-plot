@@ -7,7 +7,6 @@
 # Last Modified Date:  19.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, Union
 from collections.abc import Sequence
 from ampel.types import UnitId, StockId, Tag
 from ampel.plot.SVGQuery import SVGQuery
@@ -16,10 +15,10 @@ from ampel.plot.SVGQuery import SVGQuery
 class T2SVGQuery(SVGQuery):
 
 	def __init__(self,
-		stocks: Optional[Union[StockId, Sequence[StockId]]] = None,
-		tags: Optional[Union[Tag, Sequence[Tag]]] = None,
-		unit: Optional[UnitId] = None,
-		config: Optional[int] = None,
+		stocks: None | StockId | Sequence[StockId] = None,
+		tags: None | Tag | Sequence[Tag] = None,
+		unit: None | UnitId = None,
+		config: None | int = None,
 		query_path: str = 'body.data.plots' # convention
 	):
 

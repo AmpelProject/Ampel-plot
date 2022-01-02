@@ -7,7 +7,7 @@
 # Last Modified Date:  24.10.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import Optional, Any, Union
+from typing import Any
 from ampel.types import StockId, Tag
 from ampel.base.AmpelBaseModel import AmpelBaseModel
 from ampel.abstract.AbsIdMapper import AbsIdMapper
@@ -20,7 +20,7 @@ class FormatModel(AmpelBaseModel):
 	:param arg_keys: keys to use as arguments from the extra dict (extra dict is to be built by classes)
 	"""
 	format_str: str
-	arg_keys: Optional[list[str]]
+	arg_keys: None | list[str]
 
 
 class PlotProperties(AmpelBaseModel):
@@ -94,32 +94,32 @@ class PlotProperties(AmpelBaseModel):
 	"""
 
 	file_name: FormatModel
-	title: Optional[FormatModel]
-	fig_include_title: Optional[bool]
-	fig_text: Optional[FormatModel] # for matplotlib
-	tags: Optional[Union[Tag, list[Tag]]]
-	width: Optional[int]
-	height: Optional[int]
-	compress: Optional[int]
-	id_mapper: Optional[Union[str, type[AbsIdMapper]]]
-	disk_save: Optional[str] # Local folder path
-	mpl_kwargs: Optional[dict[str, Any]]
+	title: None | FormatModel
+	fig_include_title: None | bool
+	fig_text: None | FormatModel # for matplotlib
+	tags: None | Tag | list[Tag]
+	width: None | int
+	height: None | int
+	compress: None | int
+	id_mapper: None | str | type[AbsIdMapper]
+	disk_save: None | str # Local folder path
+	mpl_kwargs: None | dict[str, Any]
 
 
 	# TODO: implement other validators ?:
 	# - for title and file_name: if FormatModel.arg_keys then format_str must contain '%s'
 	# - if id_mapper is set but FormatModel.arg_keys does not contain 'stock' do ?
 
-	def get_file_name(self, extra: Optional[dict[str, Any]] = None) -> str:
+	def get_file_name(self, extra: None | dict[str, Any] = None) -> str:
 		return self._format_attr(self.file_name, extra)
 
-	def get_title(self, extra: Optional[dict[str, Any]] = None) -> Optional[str]:
+	def get_title(self, extra: None | dict[str, Any] = None) -> None | str:
 		return self._format_attr(self.title, extra) if self.title else None
 
-	def get_fig_text(self, extra: Optional[dict[str, Any]] = None) -> Optional[str]:
+	def get_fig_text(self, extra: None | dict[str, Any] = None) -> None | str:
 		return self._format_attr(self.fig_text, extra) if self.fig_text else None
 
-	def _format_attr(self, attr: FormatModel, extra: Optional[dict[str, Any]] = None) -> str:
+	def _format_attr(self, attr: FormatModel, extra: None | dict[str, Any] = None) -> str:
 
 		if attr.arg_keys and extra:
 			try:
