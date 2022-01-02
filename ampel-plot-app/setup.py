@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                19.11.2021
-# Last Modified Date:  19.11.2021
+# Last Modified Date:  02.01.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from setuptools import setup, find_namespace_packages # type: ignore
@@ -21,5 +21,6 @@ setup(
 			'*.yml', '**/*.yml', '**/**/*.yml'
 		]
 	},
+	python_requires = '>=3.10,<3.11',
 	install_requires = ["ampel-plot", "ampel-plot-browse", "pyinstaller", "pysimplegui", "psutil"]
 )
