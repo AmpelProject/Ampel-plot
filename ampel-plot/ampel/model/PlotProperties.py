@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plot/ampel-plot/ampel/model/PlotProperties.py
-# License           : BSD-3-Clause
-# Author            : vb <vbrinnel@physik.hu-berlin.de>
-# Date              : 12.02.2021
-# Last Modified Date: 24.10.2021
-# Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
+# File:                Ampel-plot/ampel-plot/ampel/model/PlotProperties.py
+# License:             BSD-3-Clause
+# Author:              valery brinnel <firstname.lastname@gmail.com>
+# Date:                12.02.2021
+# Last Modified Date:  24.10.2021
+# Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import List, Optional, Dict, Any, Type, Union
 from ampel.types import StockId, Tag
