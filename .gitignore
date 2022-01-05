@@ -10,3 +10,4 @@ dist/
 build
 public
 .vscode/
+ampel-plot-app/AmpelPlot.spec

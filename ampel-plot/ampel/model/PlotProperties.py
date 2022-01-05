@@ -1,29 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File              : Ampel-plots/ampel/model/PlotProperties.py
-# License           : BSD-3-Clause
-# Author            : vb <vbrinnel@physik.hu-berlin.de>
-# Date              : 12.02.2021
-# Last Modified Date: 23.02.2021
-# Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
+# File:                Ampel-plot/ampel-plot/ampel/model/PlotProperties.py
+# License:             BSD-3-Clause
+# Author:              valery brinnel <firstname.lastname@gmail.com>
+# Date:                12.02.2021
+# Last Modified Date:  24.10.2021
+# Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import List, Optional, Dict, Any, Type, Union
-from ampel.types import StockId
-from ampel.model.StrictModel import StrictModel
+from typing import Any
+from ampel.types import StockId, Tag
+from ampel.base.AmpelBaseModel import AmpelBaseModel
 from ampel.abstract.AbsIdMapper import AbsIdMapper
 from ampel.base.AuxUnitRegister import AuxUnitRegister
 
 
-class FormatModel(StrictModel):
+class FormatModel(AmpelBaseModel):
 	"""
 	:param format_str: ex: %s_figure.png
 	:param arg_keys: keys to use as arguments from the extra dict (extra dict is to be built by classes)
 	"""
 	format_str: str
-	arg_keys: Optional[List[str]]
+	arg_keys: None | list[str]
 
 
-class PlotProperties(StrictModel):
+class PlotProperties(AmpelBaseModel):
 	"""
 	Contains customization values for:
 	- given matplotlib properties (width, height, title, ...)
@@ -94,40 +94,48 @@ class PlotProperties(StrictModel):
 	"""
 
 	file_name: FormatModel
-	title: Optional[FormatModel]
-	fig_include_title: Optional[bool]
-	fig_text: Optional[FormatModel] # for matplotlib
-	tags: Optional[List[str]]
-	width: Optional[int]
-	height: Optional[int]
-	compress: Optional[int]
-	id_mapper: Optional[Union[str, Type[AbsIdMapper]]]
-	disk_save: Optional[str] # Local folder path
-	mpl_kwargs: Optional[Dict[str, Any]]
+	title: None | FormatModel
+	fig_include_title: None | bool
+	fig_text: None | FormatModel # for matplotlib
+	tags: None | Tag | list[Tag]
+	width: None | int
+	height: None | int
+	compress: None | int
+	id_mapper: None | str | type[AbsIdMapper]
+	disk_save: None | str # Local folder path
+	mpl_kwargs: None | dict[str, Any]
 
 
 	# TODO: implement other validators ?:
 	# - for title and file_name: if FormatModel.arg_keys then format_str must contain '%s'
 	# - if id_mapper is set but FormatModel.arg_keys does not contain 'stock' do ?
 
-	def get_file_name(self, extra: Optional[Dict[str, Any]] = None) -> str:
+	def get_file_name(self, extra: None | dict[str, Any] = None) -> str:
 		return self._format_attr(self.file_name, extra)
 
-	def get_title(self, extra: Optional[Dict[str, Any]] = None) -> Optional[str]:
+	def get_title(self, extra: None | dict[str, Any] = None) -> None | str:
 		return self._format_attr(self.title, extra) if self.title else None
 
-	def get_fig_text(self, extra: Optional[Dict[str, Any]] = None) -> Optional[str]:
+	def get_fig_text(self, extra: None | dict[str, Any] = None) -> None | str:
 		return self._format_attr(self.fig_text, extra) if self.fig_text else None
 
-	def _format_attr(self, attr: FormatModel, extra: Optional[Dict[str, Any]] = None) -> str:
+	def _format_attr(self, attr: FormatModel, extra: None | dict[str, Any] = None) -> str:
 
 		if attr.arg_keys and extra:
+			try:
+				if 'stock' in attr.arg_keys and self.id_mapper:
+					extra = extra.copy()
+					extra['stock'] = self.get_ext_name(extra['stock'])
 
-			if 'stock' in attr.arg_keys and self.id_mapper:
-				extra = extra.copy()
-				extra['stock'] = self.get_ext_name(extra['stock'])
-
-			return attr.format_str % tuple(extra[k] for k in attr.arg_keys if k in extra)
+				return attr.format_str % tuple(extra[k] for k in attr.arg_keys if k in extra)
+			except TypeError as e:
+				# TODO: require logger for get_file_name(), get_title, and get_fig_text
+				# pass it through and use it here
+				print("#" * 50)
+				print(f"Format model: {attr}")
+				print("Arguments: " + str(tuple(extra[k] for k in attr.arg_keys if k in extra)))
+				print("#" * 50)
+				raise e
 
 		return attr.format_str
 
