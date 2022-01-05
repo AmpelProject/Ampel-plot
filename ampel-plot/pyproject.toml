@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "ampel-plots"
-version = "0.8.0-alpha.0"
+name = "ampel-plot"
+version = "0.8.3-alpha.0"
 description = "Plotting add-on for the Ampel system"
 authors = ["Valery Brinnel"]
 license = "BSD-3-Clause"
@@ -17,14 +17,14 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10"
+python = ">=3.10,<3.11"
 matplotlib = "^3.4.3"
 svgutils = "0.3.0"
 CairoSVG = "^2.5.2"
-ampel-core = "^0.8.0-alpha.5"
+ampel-core = "^0.8.3-alpha.2"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.910"
+mypy = "^0.930"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
