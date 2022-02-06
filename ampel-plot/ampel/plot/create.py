@@ -12,7 +12,7 @@ import matplotlib as plt
 from matplotlib.figure import Figure
 from typing import Any
 
-from ampel.types import Tag
+from ampel.types import Tag, OneOrMany
 from ampel.content.SVGRecord import SVGRecord
 from ampel.protocol.LoggerProtocol import LoggerProtocol
 from ampel.model.PlotProperties import PlotProperties
@@ -21,13 +21,13 @@ from ampel.util.tag import merge_tags
 
 
 def mplfig_to_svg_dict(
-	mpl_fig: Figure, file_name: str, title: None | str = None, tags: None | Tag | list[Tag] = None,
+	mpl_fig: Figure, file_name: str, title: None | str = None, tags: None | OneOrMany[Tag] = None,
 	compress: int = 1, width: None | int = None, height: None | int = None,
 	close: bool = True, fig_include_title: None | bool = False, logger: None | LoggerProtocol = None
 ) -> SVGRecord:
 	"""
 	:param mpl_fig: matplotlib figure
-	:param tags: list of plot tags
+	:param tags: one or many plot tags
 	:param compress:
 		0: no compression, 'svg' value will be a string
 		1: compress svg, 'svg' value will be compressed bytes (usage: store plots into db)
@@ -77,7 +77,7 @@ def mplfig_to_svg_dict1(
 	mpl_fig: Figure,
 	props: PlotProperties,
 	extra: None | dict[str, Any] = None,
-	tag_complement: None | Tag | list[Tag] = None,
+	tag_complement: None | OneOrMany[Tag] = None,
 	close: bool = True, logger: None | LoggerProtocol = None
 ) -> SVGRecord:
 	"""
@@ -112,8 +112,8 @@ def mplfig_to_svg_dict1(
 
 
 def get_tags_as_str(
-	plot_tag: None | Tag | list[Tag] = None,
-	extra_tags: None | Tag | list[Tag] = None
+	plot_tag: None | OneOrMany[Tag] = None,
+	extra_tags: None | OneOrMany[Tag] = None
 ) -> str:
 
 	if plot_tag:
