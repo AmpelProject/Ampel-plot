@@ -7,9 +7,11 @@
 # Last Modified Date:  30.11.2021
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from ampel.plot.util.load import decompress_svg_dict
+from multiprocessing import Pool
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
+from ampel.plot.util.load import decompress_svg_dict
+from ampel.plot.util.transform import svg_to_png_html
 
 
 class SVGCollection:
@@ -97,7 +99,7 @@ class SVGCollection:
 			# TODO: put this in a file, update package data and access it via pkg_resources
 			html = """
 			<html>
-			<body>
+			<body onload="showTime();">
 
 			<div id=tagfilter style='display: block'>
 				<input id=tags type='text' placeholder="tags" style="width: 100px"/>
@@ -106,9 +108,14 @@ class SVGCollection:
 				<button onclick="show_all()">Clear</button>
 				<button id=tightbtn onclick="tight()">Tight</button>
 				<button id=tightbtn onclick="toggle_titles()">Titles</button>
+				<div id="datetime" style="display: inline; color: grey; padding-left: 10px; font-style: italic;"></div>
 			<div>
 
 			<script>
+
+				function showTime() {
+					document.getElementById("datetime").innerHTML = (new Date()).toString();
+				}
 
 				function toggle_div() {
 					tags = document.getElementById('tags').value.split(" ");
@@ -141,9 +148,14 @@ class SVGCollection:
 
 				function show_all() {
 					var plots = document.getElementsByClassName("PLOT");
+					var centers = document.getElementsByTagName("center");
 					for (var i=0; i < plots.length; i ++) {
 						if (plots[i].style.display === "none")
 							plots[i].style.display = "block";
+					}
+					for (var i=0; i < centers.length; i ++) {
+						if (centers[i].style.display === "none")
+							centers[i].style.display = "";
 					}
 				}
 
@@ -161,6 +173,11 @@ class SVGCollection:
 							h3s[i].style.display = "block";
 						else
 							h3s[i].style.display = "none";
+				}
+
+				function hide_parent(elem) {
+					elem.parentNode.style.display = "none";
+					//elem.style.display = "none";
 				}
 
 				document.getElementById("tags")
@@ -188,6 +205,18 @@ class SVGCollection:
 				flex-direction: row; \
 				flex-wrap: wrap; \
 				justify-content: center">'
+
+		if png_convert and len(self._svgs) > 1:
+
+			with Pool() as pool:
+				futures = [
+					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale))
+					for svg in self._svgs
+				]
+				for f, svg in zip(futures, self._svgs):
+					if svg._pngd is None:
+						svg._pngd = {}
+					svg._pngd[(scale, png_convert)] = f.get() # type: ignore
 
 		for svg in self._svgs:
 			html += svg._repr_html_(

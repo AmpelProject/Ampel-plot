@@ -33,6 +33,7 @@ class SVGPlot:
 		self._title_left_padding = title_left_padding
 		self._center = center
 		self._doc_tags = doc_tags
+		self._pngd: None | dict[tuple[float, int], str] = None
 
 
 	def has_tag(self, tag: Tag) -> bool:
@@ -86,6 +87,16 @@ class SVGPlot:
 		return rescale_str(self._record['svg'], scale) # type: ignore
 
 
+	def _build_png(self, png_convert: int, scale: float = 1.0) -> str:
+		if self._pngd is None:
+			self._pngd = {}
+		if (scale, png_convert) not in self._pngd:
+			self._pngd[(scale, png_convert)] = svg_to_png_html(
+				self._record['svg'], scale = scale, dpi = png_convert # type: ignore[arg-type]
+			)
+		return self._pngd[(scale, png_convert)]
+
+
 	def _repr_html_(self,
 		scale: float = 1.0, show_title: bool = True,
 		title_prefix: None | str = None, title_on_top: bool = False,
@@ -99,6 +110,7 @@ class SVGPlot:
 		"""
 
 		html = "<center>" if self._center else ""
+		html += '<div style="position: relative; cursor: pointer; right:-45%; color: grey" onclick="hide_parent(this);">X</div>'
 		html += '<div style="padding-bottom: %ipx" class="%s">' % (
 			padding_bottom,
 			"PLOT" if not self._tags else " ".join(
@@ -120,7 +132,13 @@ class SVGPlot:
 			raise ValueError("SVGRecord should not be compressed")
 
 		if png_convert:
-			html += svg_to_png_html(self._record['svg'], scale=scale, dpi=png_convert)
+			print(f"Converting {self.get_file_name()} to PNG")
+			if self._pngd and (scale, png_convert) in self._pngd:
+				html += self._pngd[(scale, png_convert)]
+			else:
+				html += svg_to_png_html(
+					self._record['svg'], scale=scale, dpi=png_convert
+				)
 		else:
 			if scale == 1.0:
 				html += self._record['svg']
