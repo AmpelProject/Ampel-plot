@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  30.11.2021
+# Last Modified Date:  12.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from multiprocessing import Pool
@@ -16,27 +16,13 @@ from ampel.plot.util.transform import svg_to_png_html
 
 class SVGCollection:
 
-	def __init__(self,
-		title: str = None,
-		inter_padding: int = 100,
-		center: bool = True
-	) -> None:
+	def __init__(self, title: str = None) -> None:
 		"""
 		:param title: title of this collection
 		:param scale: scale factor for all SVGs (default: 1.0)
-		:param inter_padding: sets padding in px between plots of this collection
 		"""
 		self._svgs: list[SVGPlot] = []
 		self._col_title = title
-		self._inter_padding = inter_padding
-		self._center = center
-
-
-	def set_inter_padding(self, inter_padding: int) -> None:
-		"""
-		Sets padding in px between plots of this collection
-		"""
-		self._inter_padding = inter_padding
 
 
 	def add_svg_plot(self, svgp: SVGPlot) -> None:
@@ -80,13 +66,14 @@ class SVGCollection:
 
 
 	def _repr_html_(self,
-		scale: float = 1.0, show_col_title: bool = True,
-		title_prefix: None | str = None, show_svg_titles: bool = True,
+		scale: float = 1.0,
+		show_col_title: bool = True,
+		title_prefix: None | str = None,
 		hide_if_empty: bool = True,
-		png_convert: None | int = None,
-		inter_padding: None | int = None,
 		flexbox_wrap: bool = True,
-		full_html: bool = True
+		full_html: bool = True,
+		png_convert: None | int = None,
+		max_size: None | int = None
 	) -> None | str:
 		"""
 		:param scale: if None, native scaling is used
@@ -99,38 +86,72 @@ class SVGCollection:
 			# TODO: put this in a file, update package data and access it via pkg_resources
 			html = """
 			<html>
+			<head>
+			<style>
+				.hovernow {margin: 10px; transition: box-shadow 0.3s ease-in-out;}
+				.hovernow:hover {box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);}
+				.selected {box-shadow: 0 5px 15px rgba(255, 1, 1, 0.8);}
+			</style>
+			</head>
+
 			<body onload="showTime();">
 
+			<center>
 			<div id=tagfilter style='display: block'>
-				<input id=tags type='text' placeholder="tags" style="width: 100px"/>
-				<button onclick="show_only()">Show</button>
-				<button onclick="toggle_div()">Toggle</button>
-				<button onclick="show_all()">Clear</button>
-				<button id=tightbtn onclick="tight()">Tight</button>
-				<button id=tightbtn onclick="toggle_titles()">Titles</button>
+				<input id="tags" type='text' placeholder="tags" style="width: 100px"/>
+				<button id="btn_tags" onclick="showOnly()">Filter</button>
+				<button onclick="showAll()">Reset</button>
+				<button onclick="toggleDivs()">Toggle</button>
+				<button id=tightbtn onclick="toggle('h3tags')">Tags</button>
+				<button id=tightbtn onclick="toggle('h3title')">Titles</button>
+				<input id="padding" type='text' placeholder="padding" style="width: 60px"/>
+				<button id="btn_padding" onclick="setPadding()">Set</button>
+				<button id="btn_copy" onclick="doCopy()">Copy</button>
 				<div id="datetime" style="display: inline; color: grey; padding-left: 10px; font-style: italic;"></div>
-			<div>
+			</div>
+			</center>
 
 			<script>
 
 				function showTime() {
-					document.getElementById("datetime").innerHTML = (new Date()).toString();
+					document.getElementById("datetime").innerHTML = new Date().toISOString().replace("T", " ").substr(0, 16);
 				}
 
-				function toggle_div() {
-					tags = document.getElementById('tags').value.split(" ");
-					for (var y = 0; y < tags.length; y++) {
-						var plots = document.getElementsByClassName(tags[y]);
-						for (var i = 0; i < plots.length; i++) {
-							if (plots[i].style.display === "none")
-								plots[i].style.display = "block";
-							else
-								plots[i].style.display = "none";
+				function doCopy() {
+					arr = [];
+					Array.from(
+						document.getElementsByClassName("selected")
+					).forEach(
+						function(item) {
+							item.classList.remove('selected');
+							arr.push(item.outerHTML);
 						}
+					);
+
+					jstr = JSON.stringify(arr);
+					function listener(e) {
+						e.clipboardData.setData("text/html", jstr);
+						e.clipboardData.setData("text/plain", jstr);
+						e.preventDefault();
+					}
+					document.addEventListener("copy", listener);
+					document.execCommand("copy");
+					document.removeEventListener("copy", listener);
+				}
+
+				function toggleDivs() {
+					console.log("Toggling divs");
+					var plots = document.getElementsByClassName("PLOT");
+					for (var i = 0; i < plots.length; i++) {
+						if (plots[i].style.display === "none")
+							plots[i].style.display = "block";
+						else
+							plots[i].style.display = "none";
 					}
 				}
 
-				function show_only() {
+				function showOnly() {
+					console.log("Filtering divs");
 					var plots = document.getElementsByClassName("PLOT");
 					tags = document.getElementById('tags').value.split(" ");
 					for (var i = 0; i < plots.length; i++) {
@@ -146,10 +167,11 @@ class SVGCollection:
 					}
 				}
 
-				function show_all() {
+				function showAll() {
 					var plots = document.getElementsByClassName("PLOT");
 					var centers = document.getElementsByTagName("center");
 					for (var i=0; i < plots.length; i ++) {
+						plots[i].classList.remove('selected');
 						if (plots[i].style.display === "none")
 							plots[i].style.display = "block";
 					}
@@ -159,15 +181,15 @@ class SVGCollection:
 					}
 				}
 
-				function tight() {
+				function setPadding() {
+					console.log("Updating padding");
 					var plots = document.getElementsByClassName("PLOT");
 					for (var i=0; i < plots.length; i ++)
-						plots[i].style.paddingBottom = "0px";
-					document.getElementById("tightbtn").style.display = "none";
+						plots[i].style.paddingBottom = document.getElementById("padding").value + "px";
 				}
 
-				function toggle_titles() {
-					var h3s = document.getElementsByTagName("h3");
+				function toggle(what) {
+					var h3s = document.getElementsByClassName(what);
 					for (var i=0; i < h3s.length; i ++)
 						if (h3s[i].style.display === "none")
 							h3s[i].style.display = "block";
@@ -175,31 +197,68 @@ class SVGCollection:
 							h3s[i].style.display = "none";
 				}
 
-				function hide_parent(elem) {
-					elem.parentNode.style.display = "none";
-					//elem.style.display = "none";
+				function hide_parent(evt) {
+					var target = evt.target || evt.srcElement;
+					if (evt.shiftKey)
+						target.parentNode.className = target.parentNode.className + " selected"
+					else
+						target.parentNode.style.display = "none";
 				}
 
-				document.getElementById("tags")
-					.addEventListener("keyup", function(event) {
-						event.preventDefault();
-						if (event.keyCode === 13)
-							show_only();
+				function handlePaste(e) {
+					e.stopPropagation();
+					e.preventDefault();
+
+					clipboardData = e.clipboardData || window.clipboardData;
+					arr = JSON.parse(clipboardData.getData('Text'));
+
+					for (var i=0; i < arr.length; i++) {
+						var template = document.createElement('template');
+						template.innerHTML = arr[i];
+						var clone = document.importNode(template.content, true);
+						document.getElementById('mainwrap').appendChild(clone);
+					}
+				}
+
+				document.getElementById("tags").addEventListener(
+					"keyup", function(event) {
+						if (event.keyCode === 13) {
+							event.preventDefault();
+							showOnly();
+						}
 					}
 				);
+
+				document.getElementById("padding").addEventListener(
+					"keyup", function(event) {
+						if (event.keyCode === 13) {
+							event.preventDefault();
+							setPadding();
+						}
+					}
+				);
+
+				document.body.addEventListener(
+					"keyup", function(event) {
+						if (event.keyCode === 27)
+							showAll();
+					}
+				);
+
+				document.body.addEventListener('paste', handlePaste);
+
 			</script>
 			"""
 		else:
 			html = ""
 
-		html += "<center>" if self._center else ""
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
 
 		if flexbox_wrap:
-			html += '<div style="\
+			html += '<div id=mainwrap style="\
 				text-align:center; \
 				display: flex; \
 				flex-direction: row; \
@@ -210,7 +269,7 @@ class SVGCollection:
 
 			with Pool() as pool:
 				futures = [
-					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale))
+					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale, max_size))
 					for svg in self._svgs
 				]
 				for f, svg in zip(futures, self._svgs):
@@ -221,16 +280,13 @@ class SVGCollection:
 		for svg in self._svgs:
 			html += svg._repr_html_(
 				scale = scale,
-				show_title = show_svg_titles,
 				title_prefix = title_prefix,
-				padding_bottom = self._inter_padding if inter_padding is None else inter_padding,
-				png_convert = png_convert
+				png_convert = png_convert,
+				max_size = max_size
 			)
 
 		if flexbox_wrap:
-			html += "</div></center>" if self._center else "</div>"
-		elif self._center:
-			html += "</center>"
+			html += "</div>"
 
 		if full_html:
 			html += "</body><html>"

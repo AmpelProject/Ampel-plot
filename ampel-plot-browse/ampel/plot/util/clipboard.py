@@ -38,8 +38,7 @@ def read_from_clipboard(
 	"""
 
 	recent_value = ""
-	scol = _new_col(pbo)
-
+	scol = SVGCollection()
 
 	pattern = re.compile(r"(?:NumberLong|ObjectId)\((.*?)\)", re.DOTALL)
 	#from bson.json_util import loads
@@ -146,7 +145,7 @@ def _handle_json(
 		return scol
 
 	show_collection(scol, pbo)
-	return _new_col(pbo)
+	return SVGCollection()
 
 
 def _load_and_add_plot(j: Any, scol: SVGCollection, pbo: PlotBrowseOptions) -> SVGCollection:
@@ -158,7 +157,7 @@ def _load_and_add_plot(j: Any, scol: SVGCollection, pbo: PlotBrowseOptions) -> S
 		if (len(scol._svgs) % pbo.stack) == 0:
 			print_func(f"Displaying plot stack ({len(scol._svgs)} figures)")
 			show_collection(scol, pbo)
-			scol = _new_col(pbo)
+			scol = SVGCollection()
 	return scol
 
 
@@ -167,12 +166,6 @@ def _load_and_show_plot(j: Any, pbo: PlotBrowseOptions) -> None:
 		splot = SVGPlot(d) # type: ignore
 		print_func("Displaying", splot._record['name'])
 		show_svg_plot(splot, pbo) # type: ignore
-
-
-def _new_col(pbo: PlotBrowseOptions) -> SVGCollection:
-	return SVGCollection(
-		inter_padding = 0 if pbo.tight else 100
-	)
 
 
 def _gather_plots(path, k, d, **kwargs) -> None:

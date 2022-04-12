@@ -89,7 +89,7 @@ def main(keyboard_callback) -> None:
 					debug = window['debug'].get(),
 					html = window['html'].get(),
 					png = int(window['dpi'].get()) if window['png'].get() else None,
-					tight = window['tight'].get(),
+					max_size = float(window['max_size'].get()),
 					scale = float(window['scale'].get()),
 					stack = int(window['stack'].get())
 				),

@@ -45,12 +45,13 @@ h = {
 	"with-doc-tag": "match plots embedded in doc with tag",
 	"without-doc-tag": "exclude plots embedded in doc with tag",
 	"png": "convert to png (from svg). Default: 96 DPI",
+	"scale": "scale png size. Default: 1.0",
+	"max-size": "max-inline-size value of each HTML div",
 	"html": "html output format (includes plot titles)",
 	"stack": "stack <n> images into one html structure (activates html option). Default: 100",
 	"out": "path to file (printed to stdout otherwise)",
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
 	"one-db": "Whether the target ampel DB was created with flag one-db",
-	"tight": "Tight layout",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -93,7 +94,8 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('show|save.optional', 'last-body', action="store_true")
 		builder.add_arg('show|save.optional', 'latest-doc', action="store_true")
-		builder.add_arg('optional', 'tight', action="store_true")
+		builder.add_arg('optional', 'scale', nargs='?', type=float, default=1.0)
+		builder.add_arg('optional', 'max-size', nargs='?', type=int)
 		builder.add_arg('show|save.optional', "db", type=str, nargs="+")
 		builder.add_arg('show|save.optional', "one-db", action="store_true")
 
@@ -122,7 +124,7 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.add_example('show', "-stack -300 -t2")
 		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc -db HelloAmpel -one-db")
-		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2 -tight")
+		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2")
 		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
 		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
 		builder.add_example('show', "-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
@@ -203,7 +205,7 @@ class PlotCommand(AbsCoreCommand):
 				break
 
 		if stack:
-			scol = SVGCollection(inter_padding=0) if args.get('tight') else SVGCollection()
+			scol = SVGCollection()
 
 		for db in dbs:
 

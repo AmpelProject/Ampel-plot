@@ -22,8 +22,11 @@ def svg_to_png_b64(svg: str, dpi: int = 96, scale: float = 1.0) -> str:
 		"ascii"
 	)
 
-def svg_to_png_html(svg: str, dpi: int = 96, scale: float = 1.0) -> str:
-	return '<img src="data:image/png;base64,' + svg_to_png_b64(svg, dpi, scale) + '">'
+def svg_to_png_html(svg: str, dpi: int = 96, scale: float = 1.0, max_size: None | int = None) -> str:
+	return '<img onclick="hide_parent(event);" style="cursor:pointer;%s" src="data:image/png;base64,%s">' % (
+		f"max-inline-size: {max_size}px" if max_size else "",
+		svg_to_png_b64(svg, dpi, scale)
+	)
 
 def rescale(svg: str, scale: float = 1.0) -> bytes:
 	image = pyvips.Image.svgload_buffer(bytes(svg, 'utf8'), scale=scale)
