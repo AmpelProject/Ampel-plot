@@ -91,37 +91,73 @@ class SVGCollection:
 				.hovernow {margin: 10px; transition: box-shadow 0.3s ease-in-out;}
 				.hovernow:hover {box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);}
 				.selected {box-shadow: 0 5px 15px rgba(255, 1, 1, 0.8);}
+				.modal {
+					display: none;
+					position: fixed;
+					z-index: 1;
+					left: 0;
+					top: 0;
+					width: 100%;
+					height: 100%;
+					overflow: auto;
+					background-color: rgb(0,0,0);
+					background-color: rgba(0,0,0,0.7);
+				}
+				.modal-content {
+					margin: 0% auto;
+					padding: 20px;
+					cursor: pointer;
+					transition: 0.3s;
+					display: block;
+				}
 			</style>
 			</head>
 
-			<body onload="showTime();">
+			<body onload="setup();">
+
+			<div id="modal" class="modal">
+				<img id="modalimg" class="modal-content"/>
+			</div>
 
 			<center>
 			<div id=tagfilter style='display: block'>
+				<button onclick="showAll()">↻</button>
 				<input id="tags" type='text' placeholder="tags" style="width: 100px"/>
-				<button id="btn_tags" onclick="showOnly()">Filter</button>
-				<button onclick="showAll()">Reset</button>
 				<button onclick="toggleDivs()">Toggle</button>
-				<button id=tightbtn onclick="toggle('h3tags')">Tags</button>
-				<button id=tightbtn onclick="toggle('h3title')">Titles</button>
+				<button id="btn_h3tags" onclick="toggle('h3tags')">Tags</button>
+				<button id="btn_h3title" onclick="toggle('h3title')">Titles</button>
 				<input id="padding" type='text' placeholder="padding" style="width: 60px"/>
-				<button id="btn_padding" onclick="setPadding()">Set</button>
-				<button id="btn_copy" onclick="doCopy()">Copy</button>
-				<div id="datetime" style="display: inline; color: grey; padding-left: 10px; font-style: italic;"></div>
+				<input id="maxwidth" type="range" min="1" max="800" value="400" style="vertical-align: middle">🔍
+				<div id="datetime" style="display: inline; position: absolute; left: 0px; color: grey; padding-left: 10px;"></div>
 			</div>
 			</center>
 
 			<script>
 
-				function showTime() {
-					document.getElementById("datetime").innerHTML = new Date().toISOString().replace("T", " ").substr(0, 16);
+				function setup() {
+					document.querySelector("#datetime").innerHTML = new Date().toISOString().replace("T", " ").substr(0, 16);
+					setMaxInlineSize();
 				}
 
-				function doCopy() {
+				function setMaxInlineSize() {
+					val = document.querySelector("#maxwidth").value + "px";
+					document.querySelectorAll(".mainimg").forEach(
+						function(img) {
+							img.style.maxInlineSize = val;
+						}
+					);
+				}
+
+				function handleCopy() {
+
+					nodeList = document.querySelectorAll(".selected");
+					if (nodeList.length == 0) {
+						document.execCommand("copy");
+						return;
+					}
+
 					arr = [];
-					Array.from(
-						document.getElementsByClassName("selected")
-					).forEach(
+					nodeList.forEach(
 						function(item) {
 							item.classList.remove('selected');
 							arr.push(item.outerHTML);
@@ -151,66 +187,92 @@ class SVGCollection:
 				}
 
 				function showOnly() {
+
 					console.log("Filtering divs");
-					var plots = document.getElementsByClassName("PLOT");
-					tags = document.getElementById('tags').value.split(" ");
-					for (var i = 0; i < plots.length; i++) {
-						var found = false;
-						for (var j=0; j < tags.length; j++) {
-							if (plots[i].classList.contains(tags[j].toUpperCase())) {
-								plots[i].style.display = "block";
-								found = true;
+					tags = document.querySelector('#tags').value.split(" ");
+
+					document.querySelectorAll(".PLOT").forEach(
+						function(plot) {
+							var found = false;
+							cl = plot.classList;
+							for (var j=0; j < tags.length; j++) {
+								if (cl.contains(tags[j].toUpperCase())) {
+									plot.style.display = "block";
+									found = true;
+								}
 							}
+							if (!found)
+								plot.style.display = "none";
 						}
-						if (!found)
-							plots[i].style.display = "none";
-					}
+					);
 				}
 
 				function showAll() {
-					var plots = document.getElementsByClassName("PLOT");
-					var centers = document.getElementsByTagName("center");
-					for (var i=0; i < plots.length; i ++) {
-						plots[i].classList.remove('selected');
-						if (plots[i].style.display === "none")
-							plots[i].style.display = "block";
-					}
-					for (var i=0; i < centers.length; i ++) {
-						if (centers[i].style.display === "none")
-							centers[i].style.display = "";
-					}
+					document.querySelector("#modal").style.display = "none";
+					document.querySelectorAll(".PLOT").forEach(
+						function(plot) {
+							plot.classList.remove('selected');
+							if (plot.style.display === "none")
+								plot.style.display = "block";
+						}
+					);
+					document.querySelectorAll("center").forEach(
+						function(center) {
+							if (center.style.display === "none")
+								center.style.display = "";
+						}
+					);
 				}
 
 				function setPadding() {
 					console.log("Updating padding");
-					var plots = document.getElementsByClassName("PLOT");
-					for (var i=0; i < plots.length; i ++)
-						plots[i].style.paddingBottom = document.getElementById("padding").value + "px";
+					padding = document.querySelector("#padding").value + "px";
+					document.querySelectorAll(".PLOT").forEach(
+						function(plot) {
+							plot.style.paddingBottom = padding;
+						}
+					);
 				}
 
 				function toggle(what) {
-					var h3s = document.getElementsByClassName(what);
-					for (var i=0; i < h3s.length; i ++)
-						if (h3s[i].style.display === "none")
-							h3s[i].style.display = "block";
+					var w = document.getElementsByClassName(what);
+					btn = document.querySelector("#btn_"+what);
+					btnval = btn.innerHTML
+					sign = (w[0].style.display === "none") ? "-" : "+"
+					btn.innerHTML = sign + ((/[a-zA-Z]/).test(btnval[0]) ? btnval : btnval.substr(1));
+					for (var i=0; i < w.length; i ++)
+						if (w[i].style.display === "none")
+							w[i].style.display = "block";
 						else
-							h3s[i].style.display = "none";
+							w[i].style.display = "none";
 				}
 
-				function hide_parent(evt) {
+				function imgClick(evt) {
 					var target = evt.target || evt.srcElement;
 					if (evt.shiftKey)
 						target.parentNode.className = target.parentNode.className + " selected"
-					else
+					else if (evt.altKey)
 						target.parentNode.style.display = "none";
+					else {
+						modalimg = document.querySelector("#modalimg");
+						document.querySelector("#modal").style.display = "block";
+						document.querySelector("#modalimg").src = target.src;
+					}
 				}
 
 				function handlePaste(e) {
-					e.stopPropagation();
-					e.preventDefault();
 
 					clipboardData = e.clipboardData || window.clipboardData;
-					arr = JSON.parse(clipboardData.getData('Text'));
+					try {
+						arr = JSON.parse(clipboardData.getData('Text'));
+					}
+					catch (error) {
+						document.execCommand("paste");
+						return;
+					}
+
+					e.preventDefault();
+					e.stopPropagation();
 
 					for (var i=0; i < arr.length; i++) {
 						var template = document.createElement('template');
@@ -242,10 +304,37 @@ class SVGCollection:
 					"keyup", function(event) {
 						if (event.keyCode === 27)
 							showAll();
+						else {
+							document.querySelectorAll(".mainimg").forEach(
+								function(img) {
+									img.style.cursor = 'pointer';
+								}
+							);
+						}
+					}
+				);
+
+				document.body.addEventListener(
+					"keydown", function(event) {
+						if (event.altKey) {
+							document.querySelectorAll(".mainimg").forEach(
+								function(img) {
+									img.style.cursor = 'not-allowed';
+								}
+							);
+						}
 					}
 				);
 
 				document.body.addEventListener('paste', handlePaste);
+				document.body.addEventListener('copy', handleCopy);
+				document.querySelector("#maxwidth").addEventListener(
+					'input', setMaxInlineSize, false
+				);
+
+				document.querySelector("#modal").onclick = function() {
+					modal.style.display = "none";
+				}
 
 			</script>
 			"""
