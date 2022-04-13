@@ -38,10 +38,7 @@ def show_svg_plot(svg: SVGPlot, pbo: PlotBrowseOptions) -> None:
 		path = path.removesuffix(".svg") + ".html"
 		with open(path, 'w', encoding='utf-8') as fh:
 			fh.write(
-				svg._repr_html_(
-					scale = pbo.scale,
-					max_size = pbo.max_size
-				)
+				svg._repr_html_(scale = pbo.scale)
 			)
 
 	else:
@@ -55,7 +52,7 @@ def show_svg_plot(svg: SVGPlot, pbo: PlotBrowseOptions) -> None:
 
 def show_collection(scol: SVGCollection, pbo: PlotBrowseOptions, print_func: None | Callable = None) -> None:
 
-	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png, max_size=pbo.max_size):
+	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png):
 
 		tmp_file = os.path.join(
 			_get_ampel_tmp_dir(),

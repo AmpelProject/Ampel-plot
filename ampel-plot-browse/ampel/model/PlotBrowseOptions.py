@@ -15,5 +15,4 @@ class PlotBrowseOptions(AmpelFlexModel):
 	html: bool = True
 	stack: int = 20
 	scale: float = 1.0
-	max_size: None | int = None
 	png: None | int = None

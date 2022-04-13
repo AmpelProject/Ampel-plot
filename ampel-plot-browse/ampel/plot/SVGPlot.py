@@ -88,15 +88,14 @@ class SVGPlot:
 		return rescale_str(self._record['svg'], scale) # type: ignore
 
 
-	def _build_png(self, png_convert: int, scale: float = 1.0, max_size: None | int = None) -> str:
+	def _build_png(self, png_convert: int, scale: float = 1.0) -> str:
 		if self._pngd is None:
 			self._pngd = {}
 		if (scale, png_convert) not in self._pngd:
 			self._pngd[(scale, png_convert)] = svg_to_png_html(
 				self._record['svg'], # type: ignore[arg-type]
 				scale = scale,
-				dpi = png_convert,
-				max_size = max_size
+				dpi = png_convert
 			)
 		return self._pngd[(scale, png_convert)]
 
@@ -108,8 +107,7 @@ class SVGPlot:
 		tags_on_top: bool = True,
 		include_doc_tags: bool = False,
 		padding_bottom: int = 0,
-		png_convert: None | int = None,
-		max_size: None | int = None
+		png_convert: None | int = None
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used
@@ -144,14 +142,13 @@ class SVGPlot:
 				html += svg_to_png_html(
 					self._record['svg'],
 					scale = scale,
-					dpi = png_convert,
-					max_size = max_size
+					dpi = png_convert
 				)
 		else:
 			if scale == 1.0:
-				html += self._record['svg']
+				html += self._record['svg'].replace('xlink"', 'xlink" class=mainimg')
 			else:
-				html += rescale_str(self._record['svg'], scale=scale)
+				html += rescale_str(self._record['svg'], scale=scale).replace('xlink"', 'xlink" class=mainimg')
 
 		if not title_on_top:
 			html += self._get_title(title_prefix)

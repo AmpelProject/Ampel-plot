@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  12.04.2022
+# Last Modified Date:  13.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from multiprocessing import Pool
@@ -72,8 +72,7 @@ class SVGCollection:
 		hide_if_empty: bool = True,
 		flexbox_wrap: bool = True,
 		full_html: bool = True,
-		png_convert: None | int = None,
-		max_size: None | int = None
+		png_convert: None | int = None
 	) -> None | str:
 		"""
 		:param scale: if None, native scaling is used
@@ -91,6 +90,7 @@ class SVGCollection:
 				.hovernow {margin: 10px; transition: box-shadow 0.3s ease-in-out;}
 				.hovernow:hover {box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);}
 				.selected {box-shadow: 0 5px 15px rgba(255, 1, 1, 0.8);}
+				.mainimg {height: min-content;}
 				.modal {
 					display: none;
 					position: fixed;
@@ -109,6 +109,10 @@ class SVGCollection:
 					cursor: pointer;
 					transition: 0.3s;
 					display: block;
+					max-width: 90%;
+					max-height: 90%;
+					width: 90%;
+					height: 90%;
 				}
 			</style>
 			</head>
@@ -136,7 +140,14 @@ class SVGCollection:
 
 				function setup() {
 					document.querySelector("#datetime").innerHTML = new Date().toISOString().replace("T", " ").substr(0, 16);
-					setMaxInlineSize();
+					val = document.querySelector("#maxwidth").value + "px";
+					document.querySelectorAll(".mainimg").forEach(
+						function(img) {
+							img.style.cursor = 'pointer';
+							img.style.maxInlineSize = val;
+							img.onclick = imgClick;
+						}
+					);
 				}
 
 				function setMaxInlineSize() {
@@ -251,12 +262,36 @@ class SVGCollection:
 					var target = evt.target || evt.srcElement;
 					if (evt.shiftKey)
 						target.parentNode.className = target.parentNode.className + " selected"
-					else if (evt.altKey)
-						target.parentNode.style.display = "none";
+					else if (evt.altKey) {
+						var current = target;
+						while (current.parentNode) {
+							current = current.parentNode;
+							tagName = current.tagName.toLowerCase();
+							if (tagName == 'svg' || tagName == 'img')
+								break;
+						}
+						current.parentNode.style.display = "none";
+					}
 					else {
 						modalimg = document.querySelector("#modalimg");
 						document.querySelector("#modal").style.display = "block";
-						document.querySelector("#modalimg").src = target.src;
+						if (target.tagName.toLowerCase() == 'img')
+							document.querySelector("#modalimg").src = target.src;
+						else {
+							var current = target;
+							while (current.parentNode) {
+								current = current.parentNode
+								if (current.tagName.toLowerCase() == 'svg')
+									break;
+							}
+							var template = document.createElement('template');
+							template.innerHTML = current.outerHTML;
+							var clone = document.importNode(template.content, true);
+							clone.firstChild.style.maxInlineSize = "";
+							clone.firstChild.setAttribute("class", "modal-content");
+							document.querySelector("#modal").innerHTML = "";
+							document.querySelector("#modal").appendChild(clone);
+						}
 					}
 				}
 
@@ -280,6 +315,15 @@ class SVGCollection:
 						var clone = document.importNode(template.content, true);
 						document.getElementById('mainwrap').appendChild(clone);
 					}
+
+					val = document.querySelector("#maxwidth").value + "px";
+					document.querySelectorAll(".mainimg").forEach(
+						function(img) {
+							img.style.cursor = 'pointer';
+							img.style.maxInlineSize = val;
+							img.onclick = imgClick;
+						}
+					);
 				}
 
 				document.getElementById("tags").addEventListener(
@@ -358,7 +402,7 @@ class SVGCollection:
 
 			with Pool() as pool:
 				futures = [
-					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale, max_size))
+					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale))
 					for svg in self._svgs
 				]
 				for f, svg in zip(futures, self._svgs):
@@ -370,8 +414,7 @@ class SVGCollection:
 			html += svg._repr_html_(
 				scale = scale,
 				title_prefix = title_prefix,
-				png_convert = png_convert,
-				max_size = max_size
+				png_convert = png_convert
 			)
 
 		if flexbox_wrap:
