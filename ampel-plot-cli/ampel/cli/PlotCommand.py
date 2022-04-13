@@ -135,6 +135,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
 		builder.add_example('show', "-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
 		builder.add_example('clipboard', "-html")
+		builder.add_example('watch', "-db DipoleAP -col t3 -one-db -config ampel_conf.yaml -stack -png 200")
 		
 		self.parsers.update(
 			builder.get()
