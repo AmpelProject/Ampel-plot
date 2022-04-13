@@ -4,18 +4,21 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                16.11.2021
-# Last Modified Date:  19.11.2021
+# Last Modified Date:  13.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
+from typing import TYPE_CHECKING
 import os, webbrowser, tempfile, hashlib
 from collections.abc import Callable
-from ampel.plot.SVGCollection import SVGCollection
-from ampel.plot.SVGPlot import SVGPlot
 from ampel.plot.util.transform import svg_to_png
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 
+if TYPE_CHECKING:
+	from ampel.plot.SVGCollection import SVGCollection
+	from ampel.plot.SVGPlot import SVGPlot
 
-def show_svg_plot(svg: SVGPlot, pbo: PlotBrowseOptions) -> None:
+
+def show_svg_plot(svg: "SVGPlot", pbo: PlotBrowseOptions) -> None:
 
 	tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
 	if not os.path.exists(tmp_dir):
@@ -50,7 +53,7 @@ def show_svg_plot(svg: SVGPlot, pbo: PlotBrowseOptions) -> None:
 	webbrowser.open('file://' + path)
 
 
-def show_collection(scol: SVGCollection, pbo: PlotBrowseOptions, print_func: None | Callable = None) -> None:
+def show_collection(scol: "SVGCollection", pbo: PlotBrowseOptions, print_func: None | Callable = None) -> None:
 
 	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png):
 

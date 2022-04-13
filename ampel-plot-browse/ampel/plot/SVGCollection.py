@@ -10,7 +10,7 @@
 from multiprocessing import Pool
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
-from ampel.plot.util.load import decompress_svg_dict
+from ampel.plot.util.compression import decompress_svg_dict
 from ampel.plot.util.transform import svg_to_png_html
 
 
@@ -111,8 +111,6 @@ class SVGCollection:
 					display: block;
 					max-width: 90%;
 					max-height: 90%;
-					width: 90%;
-					height: 90%;
 				}
 			</style>
 			</head>
@@ -265,10 +263,10 @@ class SVGCollection:
 					else if (evt.altKey) {
 						var current = target;
 						while (current.parentNode) {
-							current = current.parentNode;
 							tagName = current.tagName.toLowerCase();
 							if (tagName == 'svg' || tagName == 'img')
 								break;
+							current = current.parentNode;
 						}
 						current.parentNode.style.display = "none";
 					}
@@ -288,6 +286,8 @@ class SVGCollection:
 							template.innerHTML = current.outerHTML;
 							var clone = document.importNode(template.content, true);
 							clone.firstChild.style.maxInlineSize = "";
+							clone.firstChild.style.height = "90%";
+							clone.firstChild.style.width = "90%";
 							clone.firstChild.setAttribute("class", "modal-content");
 							document.querySelector("#modal").innerHTML = "";
 							document.querySelector("#modal").appendChild(clone);

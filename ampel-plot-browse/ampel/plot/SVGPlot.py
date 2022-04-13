@@ -11,7 +11,7 @@ import os
 from collections.abc import Sequence
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
-from ampel.plot.util.load import decompress_svg_dict
+from ampel.plot.util.compression import decompress_svg_dict
 from ampel.plot.util.transform import svg_to_png_html, rescale_str
 
 

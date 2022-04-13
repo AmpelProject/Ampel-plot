@@ -4,10 +4,11 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  19.11.2021
+# Last Modified Date:  13.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
+from pymongo import MongoClient # type: ignore[import]
 from collections.abc import Sequence
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -23,13 +24,15 @@ from ampel.plot.SVGLoader import SVGLoader
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
+from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
 
 
 h = {
 	"show": "Display ampel plots retrieved via DB query(ies)",
 	"save": "Not implemented yet (for now, please use 'show' and save the result(s) manually)",
-	"read": "Monitors the clipboard for ampel plots which are then automatically displayed in browser",
+	"clipboard": "Monitors the clipboard for ampel plots which are then automatically displayed in browser",
+	"watch": "Monitors a given collection for ampel plots which are then automatically displayed in browser",
 	"config": "path to an ampel config file (yaml/json)",
 	"secrets": "path to a YAML secrets store in sops format",
 	"stock": "stock id(s). Comma sperated values can be used",
@@ -51,6 +54,7 @@ h = {
 	"stack": "stack <n> images into one html structure (activates html option). Default: 100",
 	"out": "path to file (printed to stdout otherwise)",
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
+	"col": "Collection name",
 	"one-db": "Whether the target ampel DB was created with flag one-db",
 	"verbose": "increases verbosity",
 	"debug": "debug"
@@ -68,7 +72,7 @@ class PlotCommand(AbsCoreCommand):
 		if sub_op in self.parsers:
 			return self.parsers[sub_op]
 
-		sub_ops = ["show", "save", "read"]
+		sub_ops = ["show", "save", "clipboard", "watch"]
 		if sub_op is None or sub_op not in sub_ops:
 			return AmpelArgumentParser.build_choice_help(
 				'plot', sub_ops, h, description = 'Show or export ampel plots.'
@@ -81,12 +85,12 @@ class PlotCommand(AbsCoreCommand):
 		builder.notation_add_example_references()
 
 		# Required
-		builder.add_arg('show|save.required', 'config', type=str)
+		builder.add_arg('show|save|watch.required', 'config', type=str)
 		builder.add_arg('save.required', 'out', type=str)
 
 		# Optional
 		builder.add_arg('show|save.optional', 'limit', type=int)
-		builder.add_arg('show|save.optional', 'secrets')
+		builder.add_arg('show|save|watch.optional', 'secrets')
 		builder.add_arg('optional', 'debug', action="store_true")
 		builder.add_arg('show|save.optional', 'id-mapper', type=str)
 		builder.add_arg('show|save.optional', 'base-path', type=str)
@@ -97,7 +101,9 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'scale', nargs='?', type=float, default=1.0)
 		builder.add_arg('optional', 'max-size', nargs='?', type=int)
 		builder.add_arg('show|save.optional', "db", type=str, nargs="+")
-		builder.add_arg('show|save.optional', "one-db", action="store_true")
+		builder.add_arg('show|save|watch.optional', "one-db", action="store_true")
+		builder.add_arg('watch.required', "db", type=str, nargs="+")
+		builder.add_arg('watch.required', "col", type=str, nargs="?")
 
 		# Optional mutually exclusive args
 		builder.add_x_args('optional',
@@ -128,7 +134,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
 		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
 		builder.add_example('show', "-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
-		builder.add_example('read', "-html")
+		builder.add_example('clipboard', "-html")
 		
 		self.parsers.update(
 			builder.get()
@@ -140,7 +146,7 @@ class PlotCommand(AbsCoreCommand):
 	# Mandatory implementation
 	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: None | str = None) -> None:
 
-		if sub_op == "read":
+		if sub_op == "clipboard":
 			from ampel.plot.util.keyboard import InlinePynput
 			ipo = InlinePynput()
 			read_from_clipboard(
@@ -175,6 +181,12 @@ class PlotCommand(AbsCoreCommand):
 			
 		if (x := args.get('base_path')) and not x.startswith("body."):
 			raise ValueError("Option 'base-path' must start with 'body.'")
+
+		if sub_op == "watch":
+			read_from_db(
+				dbs[0].get_collection(args['col']),
+				PlotBrowseOptions(**args)
+			)
 
 		if 'id_mapper' in args:
 			AuxUnitRegister.initialize(config)
