@@ -7,8 +7,10 @@
 # Last Modified Date:  13.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import gc
+import gc, bson # type: ignore[import]
 from time import sleep, time
+from bson.codec_options import CodecOptions # type: ignore[import]
+from bson.raw_bson import RawBSONDocument # type: ignore[import]
 from pymongo.collection import Collection # type: ignore[import]
 from ampel.util.recursion import walk_and_process_dict
 from ampel.plot.SVGCollection import SVGCollection
@@ -24,11 +26,18 @@ def read_from_db(col: Collection, pbo: PlotBrowseOptions) -> None:
 		last_doc = next(col.find({'_id': -1}).limit(1), None)
 		latest_ts = last_doc['meta']['ts'] if last_doc else time()
 
+		col = col.database.get_collection(
+			col.name,
+			codec_options = CodecOptions(document_class=RawBSONDocument)
+		)
+
 		while True:
 
-			for doc in col.find({'meta.ts': {'$gt': latest_ts}}):
+			for rdoc in col.find({'meta.ts': {'$gt': latest_ts}}):
 
 				print_func("*"*20)
+				print_func(f"Loaded doc size: {round(len(rdoc.raw)/1024/1024, 2)} MBytes")
+				doc = bson.decode(rdoc.raw)
 				if doc['meta']['ts'] > latest_ts:
 					latest_ts = doc['meta']['ts']
 
