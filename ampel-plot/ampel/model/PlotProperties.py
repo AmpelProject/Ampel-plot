@@ -4,11 +4,12 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                12.02.2021
-# Last Modified Date:  24.10.2021
+# Last Modified Date:  20.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
 from ampel.types import StockId, Tag
+from ampel.util.compression import TCompression
 from ampel.base.AmpelBaseModel import AmpelBaseModel
 from ampel.abstract.AbsIdMapper import AbsIdMapper
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -100,7 +101,8 @@ class PlotProperties(AmpelBaseModel):
 	tags: None | Tag | list[Tag]
 	width: None | int
 	height: None | int
-	compress: None | int
+	compression_behavior: None | int
+	compression_alg: TCompression = "ZIP_BZIP2"
 	id_mapper: None | str | type[AbsIdMapper]
 	disk_save: None | str # Local folder path
 	mpl_kwargs: None | dict[str, Any]
@@ -152,10 +154,10 @@ class PlotProperties(AmpelBaseModel):
 		return self.id_mapper.to_ext_id(ampel_id)
 
 
-	def get_compress(self) -> int:
+	def get_compression_behavior(self) -> int:
 
-		if self.compress: # if explicit compress is set, return this
-			return self.compress
+		if self.compression_behavior: # if explicit compress is set, return this
+			return self.compression_behavior
 		if self.disk_save:
 			return 2
 		return 1
