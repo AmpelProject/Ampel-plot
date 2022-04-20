@@ -16,22 +16,30 @@ from ampel.types import Tag, OneOrMany
 from ampel.content.SVGRecord import SVGRecord
 from ampel.protocol.LoggerProtocol import LoggerProtocol
 from ampel.model.PlotProperties import PlotProperties
-from ampel.util.compression import compress as fcompress
+from ampel.util.compression import TCompression, compress as compress_func
 from ampel.util.tag import merge_tags
 
 
 def mplfig_to_svg_dict(
-	mpl_fig: Figure, file_name: str, title: None | str = None, tags: None | OneOrMany[Tag] = None,
-	compress: int = 1, width: None | int = None, height: None | int = None,
-	close: bool = True, fig_include_title: None | bool = False, logger: None | LoggerProtocol = None
+	mpl_fig: Figure,
+	file_name: str,
+	title: None | str = None,
+	tags: None | OneOrMany[Tag] = None,
+	compression_behavior: int = 1,
+	compression_alg: TCompression = "ZIP_DEFLATED",
+	width: None | int = None,
+	height: None | int = None,
+	close: bool = True,
+	fig_include_title: None | bool = False,
+	logger: None | LoggerProtocol = None
 ) -> SVGRecord:
 	"""
 	:param mpl_fig: matplotlib figure
 	:param tags: one or many plot tags
-	:param compress:
+	:param compression_behavior:
 		0: no compression, 'svg' value will be a string
-		1: compress svg, 'svg' value will be compressed bytes (usage: store plots into db)
-		2: compress svg and include uncompressed string into key 'sgv_str'
+		1: compression_behavior svg, 'svg' value will be compressed bytes (usage: store plots into db)
+		2: compression_behavior svg and include uncompressed string into key 'sgv_str'
 		(useful for saving plots into db and additionaly to disk for offline analysis)
 	:param width: figure width, for example 10 inches
 	:param height: figure height, for example 10 inches
@@ -61,13 +69,17 @@ def mplfig_to_svg_dict(
 	if title:
 		ret['title'] = title
 
-	if compress == 0:
+	if compression_behavior == 0:
 		ret['svg'] = imgdata.getvalue()
 		return ret
 
-	ret['svg'] = fcompress(imgdata.getvalue().encode('utf8'), file_name)
+	ret['svg'] = compress_func(
+		imgdata.getvalue().encode('utf8'),
+		file_name,
+		alg = compression_alg
+	)
 
-	if compress == 2:
+	if compression_behavior == 2:
 		ret['svg_str'] = imgdata.getvalue()
 
 	return ret
@@ -92,7 +104,8 @@ def mplfig_to_svg_dict1(
 		width = props.width,
 		height = props.height,
 		tags = props.tags if not tag_complement else merge_tags(props.tags, tag_complement),
-		compress = props.get_compress(),
+		compression_behavior = props.get_compression_behavior(),
+		compression_alg = props.compression_alg,
 		logger = logger,
 		close = close
 	)
@@ -104,7 +117,7 @@ def mplfig_to_svg_dict1(
 		with open("%s/%s" % (props.disk_save, file_name), "w") as f:
 			f.write(
 				svg_doc.pop("svg_str") # type: ignore
-				if props.get_compress() == 2
+				if props.get_compression_behavior() == 2
 				else svg_doc['svg']
 			)
 
