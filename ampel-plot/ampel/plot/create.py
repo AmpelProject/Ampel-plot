@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                17.05.2019
-# Last Modified Date:  09.12.2021
+# Last Modified Date:  20.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import io
@@ -27,6 +27,7 @@ def mplfig_to_svg_dict(
 	tags: None | OneOrMany[Tag] = None,
 	compression_behavior: int = 1,
 	compression_alg: TCompression = "ZIP_DEFLATED",
+	compression_level: int = 9,
 	width: None | int = None,
 	height: None | int = None,
 	close: bool = True,
@@ -76,7 +77,8 @@ def mplfig_to_svg_dict(
 	ret['svg'] = compress_func(
 		imgdata.getvalue().encode('utf8'),
 		file_name,
-		alg = compression_alg
+		alg = compression_alg,
+		compression_level = compression_level
 	)
 
 	if compression_behavior == 2:
@@ -106,6 +108,7 @@ def mplfig_to_svg_dict1(
 		tags = props.tags if not tag_complement else merge_tags(props.tags, tag_complement),
 		compression_behavior = props.get_compression_behavior(),
 		compression_alg = props.compression_alg,
+		compression_level = props.compression_level,
 		logger = logger,
 		close = close
 	)
