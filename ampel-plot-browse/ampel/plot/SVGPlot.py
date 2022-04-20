@@ -4,10 +4,10 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  12.04.2022
+# Last Modified Date:  20.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import os
+import os, html
 from collections.abc import Sequence
 from ampel.types import Tag
 from ampel.content.SVGRecord import SVGRecord
@@ -61,25 +61,38 @@ class SVGPlot:
 			f.write("</body></html>")
 		
 
-	def _get_title(self, title_prefix: None | str = None) -> str:
+	def _get_title(self, title_prefix: None | str = None, html_escape: bool = False) -> str:
 		return '<h3 class="h3title" style="padding-left:%ipx;line-height:20pt;text-align:center">%s %s</h3>' % (
 			self._title_left_padding,
 			"" if title_prefix is None else title_prefix,
-			self._record['title'].replace("\n", "<br/>")
+			(
+				html.escape(self._record['title']) if html_escape
+				else self._record['title']
+			).replace("\n", "<br/>")
 		)
 
 
-	def _get_tags(self, include_doc_tags: bool = False, display: bool = False) -> str:
+	def _get_tags(self,
+		include_doc_tags: bool = False,
+		display: bool = False,
+		html_escape: bool = False
+	) -> str:
+
 		if display:
-			ret = '<h3 class="h3tags">'
+			first = '<h3 class="h3tags">'
 		else:
-			ret = '<h3 class="h3tags" style="display:none">'
+			first = '<h3 class="h3tags" style="display:none">'
+
 		if include_doc_tags and self._doc_tags:
-			ret += str(self._doc_tags) if isinstance(self._doc_tags, (int, str)) \
+			tags = str(self._doc_tags) if isinstance(self._doc_tags, (int, str)) \
 				else " ".join(self._doc_tags) # type: ignore[arg-type]
 		else:
-			ret += str(self._tags)
-		return ret + '</h3>'
+			tags = str(self._tags)
+
+		if html_escape:
+			return first + html.escape(tags) + '</h3>'
+
+		return first + tags + '</h3>'
 
 
 	def get(self, scale: float = 1.0) -> str:
@@ -123,10 +136,10 @@ class SVGPlot:
 		)
 
 		if title_on_top:
-			html += self._get_title(title_prefix)
+			html += self._get_title(title_prefix, html_escape=True)
 
 		if tags_on_top:
-			html += self._get_tags(include_doc_tags)
+			html += self._get_tags(include_doc_tags, html_escape=True)
 
 		# html += SVGPlot.display_div
 		html += ""
@@ -151,10 +164,10 @@ class SVGPlot:
 				html += rescale_str(self._record['svg'], scale=scale).replace('xlink"', 'xlink" class=mainimg')
 
 		if not title_on_top:
-			html += self._get_title(title_prefix)
+			html += self._get_title(title_prefix, html_escape=True)
 
 		if not tags_on_top:
-			html += self._get_tags(include_doc_tags)
+			html += self._get_tags(include_doc_tags, html_escape=True)
 
 		return html + '</div>'
 
