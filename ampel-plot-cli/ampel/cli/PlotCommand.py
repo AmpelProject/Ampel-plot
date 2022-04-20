@@ -8,7 +8,6 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
-from pymongo import MongoClient # type: ignore[import]
 from collections.abc import Sequence
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
