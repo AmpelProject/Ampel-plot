@@ -1,0 +1,8 @@
+name: data
+collections:
+- name: plots
+  indexes:
+  - field: tag
+role:
+  r: logger
+  w: writer
