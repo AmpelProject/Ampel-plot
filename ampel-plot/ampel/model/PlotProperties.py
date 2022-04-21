@@ -104,6 +104,7 @@ class PlotProperties(AmpelBaseModel):
 	compression_behavior: None | int
 	compression_alg: TCompression = "ZIP_BZIP2"
 	compression_level: int = 9
+	detached: bool = True
 	id_mapper: None | str | type[AbsIdMapper]
 	disk_save: None | str # Local folder path
 	mpl_kwargs: None | dict[str, Any]
