@@ -4,11 +4,13 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                17.05.2019
-# Last Modified Date:  13.04.2022
+# Last Modified Date:  20.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import base64
 from typing import Any
+from bson import ObjectId # type: ignore[import]
+from pymongo.collection import Collection # type: ignore[import]
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
@@ -23,53 +25,57 @@ def set_print(pf: Any) -> None:
 
 def _handle_json(
 	j: dict | list[dict],
+	svg_col: SVGCollection,
+	plots_col: Collection,
 	pbo: PlotBrowseOptions,
-	scol: SVGCollection,
 	concatenate: bool = False
 ) -> SVGCollection:
 
 	if pbo.stack < 2:
 		if isinstance(j, dict):
-			_load_and_show_plot(j, pbo)
+			_load_and_show_plot(j, plots_col, pbo)
 		elif isinstance(j, list):
 			for d in j:
-				_load_and_show_plot(d, pbo)
-		return scol
+				_load_and_show_plot(d, plots_col, pbo)
+		return svg_col
 
 	if isinstance(j, dict):
-		scol = _load_and_add_plot(j, scol, pbo)
+		svg_col = _load_and_add_plot(j, svg_col, plots_col, pbo)
 	elif isinstance(j, list):
 		for d in j:
-			_load_and_add_plot(d, scol, pbo)
+			_load_and_add_plot(d, svg_col, plots_col, pbo)
 
 	if concatenate:
-		return scol
+		return svg_col
 
-	show_collection(scol, pbo)
+	show_collection(svg_col, pbo)
 	return SVGCollection()
 
 
 def _load_and_add_plot(
 	j: Any,
-	scol: SVGCollection,
+	svg_col: SVGCollection,
+	plots_col: Collection,
 	pbo: PlotBrowseOptions
 ) -> SVGCollection:
 	""" will display and reset collection if number of plots exceeds pbo.stack """
 
+	_check_side_load(j, plots_col)
 	if (d := _check_adapt(j)):
 		splot = SVGPlot(d) # type: ignore
 		print_func("Adding", splot._record['name'])
-		scol.add_svg_plot(splot)
-		if (len(scol._svgs) % pbo.stack) == 0:
-			print_func(f"Displaying plot stack ({len(scol._svgs)} figures)")
-			show_collection(scol, pbo)
-			scol = SVGCollection()
+		svg_col.add_svg_plot(splot)
+		if (len(svg_col._svgs) % pbo.stack) == 0:
+			print_func(f"Displaying plot stack ({len(svg_col._svgs)} figures)")
+			show_collection(svg_col, pbo)
+			svg_col = SVGCollection()
 
-	return scol
+	return svg_col
 
 
-def _load_and_show_plot(j: Any, pbo: PlotBrowseOptions) -> None:
+def _load_and_show_plot(j: Any, plots_col: Collection, pbo: PlotBrowseOptions) -> None:
 
+	_check_side_load(j, plots_col)
 	if (d := _check_adapt(j)):
 		splot = SVGPlot(d) # type: ignore
 		print_func("Displaying", splot._record['name'])
@@ -97,3 +103,35 @@ def _check_adapt(j: Any) -> None | SVGPlot:
 	if isinstance(j['svg'], dict) and '$binary' in j['svg']:
 		j['svg'] = base64.b64decode(j['svg']['$binary'])
 	return j # type: ignore
+
+
+def _check_side_load(j: Any, col: Collection) -> None:
+
+	if isinstance(j, dict) and 'svg' in j:
+		if isinstance(j['svg'], str) and len(j['svg']) == 24:
+			print_func(f"Side-loading {j['name']}")
+			j['svg'] = next(col.find({'_id': ObjectId(j['svg'])}))['svg']
+		if isinstance(j['svg'], ObjectId):
+			print_func(f"Side-loading {j['name']}")
+			j['svg'] = next(col.find({'_id': j['svg']}))['svg']
+
+	elif isinstance(j, list):
+
+		ids = []
+		for i, el in enumerate(j):
+
+			if isinstance(el['svg'], str) and len(el['svg']) == 24:
+				ids.append((i, ObjectId(el['svg'])))
+
+			elif isinstance(el['svg'], ObjectId):
+				ids.append((i, el['svg']))
+
+		if ids:
+			resolved = {
+				doc['_id']: doc['svg']
+				for doc in col.find({'_id': {'$in': [x[1] for x in ids]}})
+			}
+
+			for i, el in ids:
+				print_func(f"Side-loading {j[i]['name']}")
+				j[i] = resolved[el]
