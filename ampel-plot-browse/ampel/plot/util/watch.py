@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.04.2022
-# Last Modified Date:  13.04.2022
+# Last Modified Date:  20.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import gc, bson # type: ignore[import]
@@ -26,6 +26,7 @@ def read_from_db(col: Collection, pbo: PlotBrowseOptions) -> None:
 		last_doc = next(col.find({'_id': -1}).limit(1), None)
 		latest_ts = last_doc['meta']['ts'] if last_doc else time()
 
+		plots_col = col.database.get_collection("plots")
 		col = col.database.get_collection(
 			col.name,
 			codec_options = CodecOptions(document_class=RawBSONDocument)
@@ -54,7 +55,7 @@ def read_from_db(col: Collection, pbo: PlotBrowseOptions) -> None:
 
 				_handle_json(
 					plots if plots else doc,
-					pbo, scol, concatenate = False
+					scol, plots_col, pbo, concatenate = False
 				)
 
 			gc.collect()
