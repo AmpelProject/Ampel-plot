@@ -84,7 +84,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.notation_add_example_references()
 
 		# Required
-		builder.add_arg('show|save|watch.required', 'config', type=str)
+		builder.add_arg('show|save|clipboard|watch.required', 'config', type=str)
 		builder.add_arg('save.required', 'out', type=str)
 
 		# Optional
@@ -99,8 +99,8 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'latest-doc', action="store_true")
 		builder.add_arg('optional', 'scale', nargs='?', type=float, default=1.0)
 		builder.add_arg('optional', 'max-size', nargs='?', type=int)
-		builder.add_arg('show|save.optional', "db", type=str, nargs="+")
-		builder.add_arg('show|save|watch.optional', "one-db", action="store_true")
+		builder.add_arg('show|save|clipboard.optional', "db", type=str, nargs="+")
+		builder.add_arg('show|save|watch|clipboard.optional', "one-db", action="store_true")
 		builder.add_arg('watch.required', "db", type=str, nargs="+")
 		builder.add_arg('watch.required', "col", type=str, nargs="?")
 
@@ -146,14 +146,6 @@ class PlotCommand(AbsCoreCommand):
 	# Mandatory implementation
 	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: None | str = None) -> None:
 
-		if sub_op == "clipboard":
-			from ampel.plot.util.keyboard import InlinePynput
-			ipo = InlinePynput()
-			read_from_clipboard(
-				PlotBrowseOptions(**args),
-				keyboard_callback = ipo.is_ctrl_pressed
-			)
-
 		stack = args.get("stack")
 		limit = args.get("limit") or 0
 		db_prefixes = args.get("db")
@@ -178,7 +170,17 @@ class PlotCommand(AbsCoreCommand):
 					one_db=args.get('one_db', False)
 				)
 			]
-			
+
+		if sub_op == "clipboard":
+			from ampel.plot.util.keyboard import InlinePynput
+			ipo = InlinePynput()
+			read_from_clipboard(
+				PlotBrowseOptions(**args),
+				plots_col = dbs[0].get_collection('plots'),
+				keyboard_callback = ipo.is_ctrl_pressed
+			)
+
+		
 		if (x := args.get('base_path')) and not x.startswith("body."):
 			raise ValueError("Option 'base-path' must start with 'body.'")
 
