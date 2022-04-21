@@ -13,14 +13,55 @@ from matplotlib.figure import Figure
 from typing import Any
 
 from ampel.types import Tag, OneOrMany
-from ampel.content.SVGRecord import SVGRecord
+from ampel.content.NewSVGRecord import NewSVGRecord
 from ampel.protocol.LoggerProtocol import LoggerProtocol
 from ampel.model.PlotProperties import PlotProperties
 from ampel.util.compression import TCompression, compress as compress_func
 from ampel.util.tag import merge_tags
 
 
-def mplfig_to_svg_dict(
+def create_plot_record(
+	mpl_fig: Figure,
+	props: PlotProperties,
+	extra: None | dict[str, Any] = None,
+	tag_complement: None | OneOrMany[Tag] = None,
+	close: bool = True, logger: None | LoggerProtocol = None
+) -> NewSVGRecord:
+	"""
+	:param extra: required if file_name, title or fig_text in PlotProperties use a format string ("such_%s_this")
+	"""
+
+	svg_doc = fig_to_plot_record(
+		mpl_fig,
+		file_name = props.get_file_name(extra=extra),
+		title = props.get_title(extra=extra),
+		fig_include_title = props.fig_include_title,
+		width = props.width,
+		height = props.height,
+		tags = props.tags if not tag_complement else merge_tags(props.tags, tag_complement),
+		compression_behavior = props.get_compression_behavior(),
+		compression_alg = props.compression_alg,
+		compression_level = props.compression_level,
+		detached = props.detached,
+		logger = logger,
+		close = close
+	)
+
+	if props.disk_save:
+		file_name = props.get_file_name(extra=extra)
+		if logger and getattr(logger, "verbose", 0) > 1:
+			logger.debug("Saving %s/%s" % (props.disk_save, file_name))
+		with open("%s/%s" % (props.disk_save, file_name), "w") as f:
+			f.write(
+				svg_doc.pop("svg_str") # type: ignore
+				if props.get_compression_behavior() == 2
+				else svg_doc['svg']
+			)
+
+	return svg_doc
+
+
+def fig_to_plot_record(
 	mpl_fig: Figure,
 	file_name: str,
 	title: None | str = None,
@@ -32,8 +73,9 @@ def mplfig_to_svg_dict(
 	height: None | int = None,
 	close: bool = True,
 	fig_include_title: None | bool = False,
+	detached: bool = True,
 	logger: None | LoggerProtocol = None
-) -> SVGRecord:
+) -> NewSVGRecord:
 	"""
 	:param mpl_fig: matplotlib figure
 	:param tags: one or many plot tags
@@ -62,13 +104,15 @@ def mplfig_to_svg_dict(
 	if close:
 		plt.pyplot.close(mpl_fig)
 
-	ret: SVGRecord = {'name': file_name}
+	ret: NewSVGRecord = {'name': file_name}
 
 	if tags:
 		ret['tag'] = tags
 
 	if title:
 		ret['title'] = title
+
+	ret['detached'] = detached
 
 	if compression_behavior == 0:
 		ret['svg'] = imgdata.getvalue()
@@ -85,46 +129,6 @@ def mplfig_to_svg_dict(
 		ret['svg_str'] = imgdata.getvalue()
 
 	return ret
-
-
-def mplfig_to_svg_dict1(
-	mpl_fig: Figure,
-	props: PlotProperties,
-	extra: None | dict[str, Any] = None,
-	tag_complement: None | OneOrMany[Tag] = None,
-	close: bool = True, logger: None | LoggerProtocol = None
-) -> SVGRecord:
-	"""
-	:param extra: required if file_name, title or fig_text in PlotProperties use a format string ("such_%s_this")
-	"""
-
-	svg_doc = mplfig_to_svg_dict(
-		mpl_fig,
-		file_name = props.get_file_name(extra=extra),
-		title = props.get_title(extra=extra),
-		fig_include_title = props.fig_include_title,
-		width = props.width,
-		height = props.height,
-		tags = props.tags if not tag_complement else merge_tags(props.tags, tag_complement),
-		compression_behavior = props.get_compression_behavior(),
-		compression_alg = props.compression_alg,
-		compression_level = props.compression_level,
-		logger = logger,
-		close = close
-	)
-
-	if props.disk_save:
-		file_name = props.get_file_name(extra=extra)
-		if logger and getattr(logger, "verbose", 0) > 1:
-			logger.debug("Saving %s/%s" % (props.disk_save, file_name))
-		with open("%s/%s" % (props.disk_save, file_name), "w") as f:
-			f.write(
-				svg_doc.pop("svg_str") # type: ignore
-				if props.get_compression_behavior() == 2
-				else svg_doc['svg']
-			)
-
-	return svg_doc
 
 
 def get_tags_as_str(
