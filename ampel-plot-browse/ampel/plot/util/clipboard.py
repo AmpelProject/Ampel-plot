@@ -8,7 +8,9 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import platform, json, time, re, gc # type: ignore[import]
+
 from typing import Any
+from pymongo.collection import Collection # type: ignore[import]
 from ampel.util.recursion import walk_and_process_dict
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
@@ -22,6 +24,7 @@ else:
 
 def read_from_clipboard(
 	pbo: PlotBrowseOptions,
+	plots_col: Collection,
 	keyboard_callback: Any,
 	gui_callback: Any = None,
 	exit_on_interrupt: bool = True
@@ -88,9 +91,9 @@ def read_from_clipboard(
 							debug = pbo.debug
 						)
 						if plots:
-							scol = _handle_json(plots, pbo, scol, ctrl_pressed)
+							scol = _handle_json(plots, scol, plots_col, pbo, ctrl_pressed)
 					else:
-						scol = _handle_json(j, pbo, scol, ctrl_pressed)
+						scol = _handle_json(j, scol, plots_col, pbo, ctrl_pressed)
 					gc.collect()
 				except KeyboardInterrupt:
 					raise
