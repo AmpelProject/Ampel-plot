@@ -21,10 +21,7 @@ base_html = distrib.get_resource_string(__name__, "data/collection.html").decode
 class SVGCollection:
 
 	def __init__(self, title: str = None) -> None:
-		"""
-		:param title: title of this collection
-		:param scale: scale factor for all SVGs (default: 1.0)
-		"""
+		""" :param title: title of this collection """
 		self._svgs: list[SVGPlot] = []
 		self._col_title = title
 
@@ -37,25 +34,19 @@ class SVGCollection:
 		self._svgs.append(svgp)
 
 
-	def add_svg_dict(self, svg_dict: SVGRecord, title_left_padding: int = 0) -> None:
-		"""
-		:param Dict svg_dict:
-		:param int title_left_padding:
-		"""
+	def add_svg_dict(self, svgd: SVGRecord, title_left_padding: int = 0) -> None:
 		self._svgs.append(
 			SVGPlot(
-				content = svg_dict,
+				content = svgd,
 				title_left_padding = title_left_padding
 			)
 		)
 
 
-	def add_raw_db_dict(self, svg_dict: SVGRecord) -> None:
-		"""
-		:param Dict svg_dict: raw svg dict loaded from DB
-		"""
+	def add_raw_db_dict(self, svgd: SVGRecord) -> None:
+		""" :param svgd: raw svg dict loaded from DB """
 		self.add_svg_dict(
-			decompress_svg_dict(svg_dict)
+			decompress_svg_dict(svgd)
 		)
 
 
