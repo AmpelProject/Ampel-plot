@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<!--
+ - File:                Ampel-plot/ampel-plot-browse/data/collection.html
+ - License:             BSD-3-Clause
+ - Author:              valery brinnel <firstname.lastname@gmail.com>
+ - Date:                Unspecified
+ - Last Modified Date:  27.04.2022
+ - Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
+-->
+
 <html>
 <head>
 	<meta charset="UTF-8"/>
@@ -48,7 +58,7 @@
 	<center>
 	<div id='tagfilter' style='display: block'>
 		<button onclick='showAll()'>↻</button>
-		<input id='tags' type='text' placeholder='tags' style='width: 100px'/>
+		<input id='tags' type='text' placeholder='tag1 tag2|tag3' style='width: 150px'/>
 		<button onclick='toggleDivs()'>Toggle</button>
 		<button id='btn_h3tags' onclick='toggle("h3tags")'>Tags</button>
 		<button id='btn_h3title' onclick='toggle("h3title")'>Titles</button>
@@ -122,20 +132,36 @@
 		function showOnly() {
 
 			console.log('Filtering divs');
-			tags = document.querySelector('#tags').value.split(' ');
+			tags = document.querySelector('#tags').value.toUpperCase().split(' ');
+			or_tags = Array(tags.length);
+			for (var j=0; j<tags.length; j++) {
+				if (tags[j].indexOf("|") != -1)
+					or_tags[j] = tags[j].split("|");
+				else
+					or_tags[j] = null;
+			}
 
 			document.querySelectorAll('.PLOT').forEach(
 				function(plot) {
-					var found = false;
+					var found = 0;
 					cl = plot.classList;
-					for (var j=0; j < tags.length; j++) {
-						if (cl.contains(tags[j].toUpperCase())) {
-							plot.style.display = 'block';
-							found = true;
+					for (var j=0; j<tags.length; j++) {
+						if (or_tags[j] != null) {
+							for (var k=0; k<or_tags[j].length; k++) {
+								if (cl.contains(or_tags[j][k])) {
+									found += 1;
+									break;
+								}
+							}
+						}
+						else if (cl.contains(tags[j])) {
+							found += 1;
 						}
 					}
-					if (!found)
+					if (found < tags.length)
 						plot.style.display = 'none';
+					else
+						plot.style.display = 'block';
 				}
 			);
 		}
