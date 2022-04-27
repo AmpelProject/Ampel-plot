@@ -4,10 +4,10 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                17.05.2019
-# Last Modified Date:  20.04.2022
+# Last Modified Date:  27.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import io
+import io, os
 import matplotlib as plt
 from matplotlib.figure import Figure
 from typing import Any
@@ -48,10 +48,10 @@ def create_plot_record(
 	)
 
 	if props.disk_save:
-		file_name = props.get_file_name(extra=extra)
+		fname = os.path.join(props.disk_save, props.get_file_name(extra=extra))
 		if logger and getattr(logger, "verbose", 0) > 1:
-			logger.debug("Saving %s/%s" % (props.disk_save, file_name))
-		with open("%s/%s" % (props.disk_save, file_name), "w") as f:
+			logger.debug(f"Saving {fname}")
+		with open(fname, "w") as f:
 			f.write(
 				svg_doc.pop("svg_str") # type: ignore
 				if props.get_compression_behavior() == 2
