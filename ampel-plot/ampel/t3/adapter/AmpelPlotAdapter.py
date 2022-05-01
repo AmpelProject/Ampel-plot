@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                20.04.2022
-# Last Modified Date:  20.04.2022
+# Last Modified Date:  27.04.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from bson import ObjectId # type: ignore[import]
@@ -43,7 +43,7 @@ def _insert_plots(path, k, d, **kwargs) -> None:
 			d[k]['svg'] = kwargs['col'].insert_one(d[k]).inserted_id
 			del d[k]['detached']
 
-	elif isinstance(d[k], list):
+	elif isinstance(d[k], list) and d[k]:
 		insert = []
 		for i in range(len(d[k])):
 			d2 = d[k][i]
