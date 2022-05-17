@@ -4,11 +4,10 @@
 # License           : BSD-3-Clause
 # Author            : vb <vbrinnel@physik.hu-berlin.de>
 # Date              : 15.06.2019
-# Last Modified Date: 02.01.2022
+# Last Modified Date: 12.05.2022
 # Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
 
 from typing import Literal, Any
-from collections.abc import Sequence
 from ampel.types import OneOrMany, StockId, Tag, UnitId
 from ampel.mongo.schema import apply_schema, apply_excl_schema
 from ampel.model.operator.AnyOf import AnyOf
@@ -19,12 +18,12 @@ from ampel.model.operator.OneOf import OneOf
 class SVGQuery:
 
 	_query: dict[str, Any]
-	col: Literal["t0", "t1", "t2", "t3"]
+	col: Literal["t0", "t1", "t2", "t3", "plots"]
 	path: str
 	tags: None | OneOrMany[Tag]
 
 	def __init__(self,
-		col: Literal["t0", "t1", "t2", "t3"],
+		col: Literal["t0", "t1", "t2", "t3", "plots"],
 		path: str = 'body.data.plot',
 		unit: None | UnitId = None,
 		config: None | int = None,
@@ -39,7 +38,7 @@ class SVGQuery:
 		] = None,
 		custom_match: None | dict = None
 	):
-		self._query = {path: {'$exists': True}}
+		self._query = {path: {'$exists': True}} if path else {}
 		self.path = path
 		self.col = col
 		self.plot_tag: None | dict[
@@ -72,7 +71,9 @@ class SVGQuery:
 
 	def set_stock(self, stock: OneOrMany[StockId]) -> None:
 
-		if isinstance(stock, (list, tuple)):
+		if isinstance(stock, str) and "," in stock:
+			self._query['stock'] = {'$in': [int(el.strip()) for el in stock.split(",")]}
+		elif isinstance(stock, (list, tuple)):
 			self._query['stock'] = {'$in': stock}
 		else:
 			self._query['stock'] = stock
@@ -103,11 +104,11 @@ class SVGQuery:
 		self.plot_tag = tag
 
 		if 'with' in tag:
-			apply_schema(self._query, self.path + ".tag", tag['with'])
+			apply_schema(self._query, ".".join([self.path, "tag"]), tag['with'])
 
 		# Order matters, parse_dict(...) must be called *after* parse_excl_dict(...)
 		if 'without' in tag:
-			apply_excl_schema(self._query, self.path + ".tag", tag['without'])
+			apply_excl_schema(self._query, ".".join([self.path, "tag"]), tag['without'])
 
 
 	def set_query_parameter(self, name: str, value: Any, overwrite: bool = False) -> None:
