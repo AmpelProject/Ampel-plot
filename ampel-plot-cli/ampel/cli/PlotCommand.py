@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  13.04.2022
+# Last Modified Date:  14.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
@@ -18,9 +18,11 @@ from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
 from ampel.cli.utils import maybe_load_idmapper
 from ampel.log.AmpelLogger import AmpelLogger
+from ampel.log.LogFlag import LogFlag
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
 from ampel.plot.SVGQuery import SVGQuery
+from ampel.core.AmpelContext import AmpelContext
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
@@ -34,7 +36,7 @@ h = {
 	"watch": "Monitors a given collection for ampel plots which are then automatically displayed in browser",
 	"config": "path to an ampel config file (yaml/json)",
 	"secrets": "path to a YAML secrets store in sops format",
-	"stock": "stock id(s). Comma sperated values can be used",
+	"stock": "stock id(s). Comma sperated values can be used (without space)",
 	"base-path": "default: body.data.plot",
 	"unit": "docs will have to match the provided ampel unit name",
 	"limit": "limit the number of *documents* (not plots) returned by the underlying DB query",
@@ -119,6 +121,7 @@ class PlotCommand(AbsCoreCommand):
 		for el in (0, 1, 2, 3):
 			builder.add_arg('show|save.match', f't{el}', action='store_true', help=f"Match only t{el} plots")
 
+		builder.add_arg('show|save.match', 'plots-col', action='store_true', help="Match only plots from plots collections")
 		builder.add_arg('show|save.match', "stock", action=MaybeIntAction, nargs="+")
 		builder.create_logic_args('show|save.match', "channel", "Channel")
 		builder.create_logic_args('show|save.match', "with-doc-tag", "Doc tag", json=False)
@@ -194,7 +197,12 @@ class PlotCommand(AbsCoreCommand):
 			AuxUnitRegister.initialize(config)
 			maybe_load_idmapper(args)
 
-		logger = AmpelLogger.get_logger()
+		logger = AmpelLogger.from_profile(
+			self.get_context(args, unknown_args, ContextClass=AmpelContext),
+			'console_debug' if args['debug'] else 'console_info',
+			base_flag=LogFlag.MANUAL_RUN
+		)
+
 		ptags: dict = {}
 		dtags: dict = {}
 
@@ -232,34 +240,47 @@ class PlotCommand(AbsCoreCommand):
 				latest_doc = args['latest_doc']
 			)
 
-			if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
-				for el in ("t0", "t1", "t2", "t3"):
-					if args[el]:
-						loader.add_query(
-							SVGQuery(
-								col = el, # type: ignore[arg-type]
-								path = args.get('base_path') or 'body.data.plot',
-								plot_tag = ptags,
-								doc_tag = dtags,
-								unit = args.get("unit"),
-								stock = args.get("stock"),
-								custom_match = args.get("custom_match")
-							)
-						)
+			if args['col_plots']:
+				loader.add_query(
+					SVGQuery(
+						col = "plots",
+						path = "",
+						plot_tag = ptags,
+						doc_tag = dtags,
+						unit = args.get("unit"),
+						stock = args.get("stock"),
+						custom_match = args.get("custom_match")
+					)
+				)
 			else:
-				for el in ("t0", "t1", "t2", "t3"):
-					if not args.get(f"no-{el}"):
-						loader.add_query(
-							SVGQuery(
-								col = el, # type: ignore[arg-type]
-								path = args.get('base_path') or 'body.data.plot',
-								plot_tag = ptags,
-								doc_tag = dtags,
-								unit = args.get("unit"),
-								stock = args.get("stock"),
-								custom_match = args.get("custom_match")
+				if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
+					for el in ("t0", "t1", "t2", "t3"):
+						if args[el]:
+							loader.add_query(
+								SVGQuery(
+									col = el, # type: ignore[arg-type]
+									path = args.get('base_path') or 'body.data.plot',
+									plot_tag = ptags,
+									doc_tag = dtags,
+									unit = args.get("unit"),
+									stock = args.get("stock"),
+									custom_match = args.get("custom_match")
+								)
 							)
-						)
+				else:
+					for el in ("t0", "t1", "t2", "t3"):
+						if not args.get(f"no-{el}"):
+							loader.add_query(
+								SVGQuery(
+									col = el, # type: ignore[arg-type]
+									path = args.get('base_path') or 'body.data.plot',
+									plot_tag = ptags,
+									doc_tag = dtags,
+									unit = args.get("unit"),
+									stock = args.get("stock"),
+									custom_match = args.get("custom_match")
+								)
+							)
 
 			loader.run()
 
