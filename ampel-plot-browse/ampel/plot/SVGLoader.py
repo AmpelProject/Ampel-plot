@@ -4,15 +4,16 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  19.11.2021
+# Last Modified Date:  14.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
+from bson import ObjectId # type: ignore[import]
 from typing import TYPE_CHECKING
 from collections.abc import Sequence
 from collections import defaultdict
 from string import digits
 
-from ampel.types import StockId, UnitId, Tag
+from ampel.types import StockId, UnitId, Tag, OneOrMany
 from ampel.core.AmpelDB import AmpelDB
 from ampel.content.SVGRecord import SVGRecord
 from ampel.log.AmpelLogger import AmpelLogger
@@ -36,7 +37,7 @@ class SVGLoader:
 	def load_t02(
 		db: AmpelDB,
 		stock: None | StockId | Sequence[StockId] = None,
-		tag: None | Tag | Sequence[Tag] = None,
+		tag: None | OneOrMany[Tag] = None,
 		t2_unit: None | UnitId = None,
 		t2_config: None | int = None
 	) -> "SVGLoader":
@@ -44,12 +45,12 @@ class SVGLoader:
 		t0_query = SVGQuery(
 			col = "t0",
 			stock = stock,
-			tag = tag
+			plot_tag = tag
 		)
 
 		t2_query = T2SVGQuery(
 			stock = stock,
-			tag = tag,
+			plot_tag = tag,
 			unit = t2_unit,
 			config = t2_config
 		)
@@ -78,6 +79,7 @@ class SVGLoader:
 		self._queries: list[SVGQuery] = []
 		self._plots: dict[StockId, SVGCollection] = defaultdict(SVGCollection)
 		self._debug = self.logger and self.logger.verbose > 1
+		self._plot_col = self._db.get_collection('plots')
 		
 		if queries:
 			for q in queries:
@@ -101,7 +103,7 @@ class SVGLoader:
 		for q in self._queries:
 
 			if self._debug:
-				self.logger.debug(f"Running {q.col} query: {q._query}")
+				self.logger.debug(f"Running query (collection '{q.col}'): {q._query}")
 
 			if self.latest_doc:
 				res = self._db.get_collection(q.col).find(q._query).sort("_id", -1).limit(1)
@@ -116,14 +118,16 @@ class SVGLoader:
 					self.logger.debug(f"{res.count()} document(s) matched [{res.count(True)} with limit]")
 			else:
 				res = self._db.get_collection(q.col).find(q._query)
-				if self._debug:
-					self.logger.debug(f"{res.count()} document(s) matched")
 
 			for el in res:
 
 				i += 1
 				if self._debug:
 					self.logger.debug(f"Parsing {el['_id']}")
+
+				if q.col == "plots":
+					self._plots[None].add_raw_db_dict(el)
+					continue
 
 				if not el.get('body'):
 					if self._debug:
@@ -217,5 +221,10 @@ class SVGLoader:
 						if self.logger and self.logger.verbose > 1:
 							self.logger.debug("Excluding plot (tag matching failed)")
 						continue
+
+			if isinstance(p['svg'], ObjectId):
+				if self._debug:
+					self.logger.debug(f"Side-loading {p['name']}")
+				p['svg'] = next(self._plot_col.find({'_id': p['svg']}))['svg']
 
 			self._plots[stock].add_raw_db_dict(p)
