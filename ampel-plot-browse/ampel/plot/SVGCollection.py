@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  20.04.2022
+# Last Modified Date:  15.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import pkg_resources # type: ignore[import]
@@ -14,8 +14,13 @@ from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.util.compression import decompress_svg_dict
 from ampel.plot.util.transform import svg_to_png_html
 
-distrib = pkg_resources.get_distribution("ampel-plot-browse")
-base_html = distrib.get_resource_string(__name__, "data/collection.html").decode('utf-8')
+base_html = "\n".join(
+	pkg_resources \
+		.get_distribution("ampel-plot-browse") \
+		.get_resource_string(__name__, "data/collection.html") \
+		.decode('utf-8') \
+		.split("\n")[10:] # skip header
+)
 
 
 class SVGCollection:
