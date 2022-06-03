@@ -240,7 +240,7 @@ class PlotCommand(AbsCoreCommand):
 				latest_doc = args['latest_doc']
 			)
 
-			if args['col_plots']:
+			if args['plots_col']:
 				loader.add_query(
 					SVGQuery(
 						col = "plots",
