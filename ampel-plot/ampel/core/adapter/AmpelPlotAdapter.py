@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                20.04.2022
-# Last Modified Date:  13.05.2022
+# Last Modified Date:  17.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from bson import ObjectId # type: ignore[import]
@@ -23,7 +23,7 @@ class AmpelPlotAdapter(AbsUnitResultAdapter):
 	def handle(self, ur: UnitResult) -> UnitResult:
 
 		if ur.body is None or not isinstance(ur.body, (dict, list)):
-			raise ValueError()
+			return ur
 
 		walk_and_process_dict(
 			arg = ur.body,
