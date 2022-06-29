@@ -15,5 +15,5 @@ setup(
 	packages=find_namespace_packages(),
 	install_requires = ["ampel-core", "ampel-plot", "ampel-plot-browse"],
 	python_requires = '>=3.10,<3.11',
-	entry_points = {'cli': ['plot Show or extract selected plots from the database = ampel.cli.PlotCommand']}
+	entry_points = {'cli': ['plot Show or export selected plots from the database = ampel.cli.PlotCommand']}
 )
