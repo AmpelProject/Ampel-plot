@@ -89,7 +89,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.notation_add_example_references()
 
 		# Required
-		builder.add_arg('show|save|clipboard|watch.required', 'config', type=str)
+		builder.add_arg('show|save|clipboard|watch.optional', 'config', type=str)
 		builder.add_arg('save.required', 'out', type=str)
 
 		# Optional
