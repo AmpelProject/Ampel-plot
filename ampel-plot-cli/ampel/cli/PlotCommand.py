@@ -308,6 +308,7 @@ class PlotCommand(AbsCoreCommand):
 				pbo = PlotBrowseOptions(**args)
 				if stack:
 					for svg in v._svgs:
+						i += 1
 						if len(dbs) > 1:
 							svg._record['title'] += f"\n<span style='color: steelblue'>{db.prefix}</span>"
 						scol.add_svg_plot(svg)
@@ -316,6 +317,7 @@ class PlotCommand(AbsCoreCommand):
 							scol = SVGCollection()
 				else:
 					for svg in v._svgs:
+						i += 1
 						show_svg_plot(svg, pbo)
 
 		if stack:
