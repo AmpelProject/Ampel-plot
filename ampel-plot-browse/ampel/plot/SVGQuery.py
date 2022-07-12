@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File              : Ampel-plot/ampel-plot-browse/ampel/plot/SVGQuery.py
-# License           : BSD-3-Clause
-# Author            : vb <vbrinnel@physik.hu-berlin.de>
-# Date              : 15.06.2019
-# Last Modified Date: 12.05.2022
-# Last Modified By  : vb <vbrinnel@physik.hu-berlin.de>
+# File:                Ampel-plot/ampel-plot-browse/ampel/plot/SVGQuery.py
+# License:             BSD-3-Clause
+# Author:              valery brinnel <firstname.lastname@gmail.com>
+# Date:                15.06.2019
+# Last Modified Date:  12.07.2022
+# Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Literal, Any
 from ampel.types import OneOrMany, StockId, Tag, UnitId
@@ -27,6 +27,7 @@ class SVGQuery:
 		path: str = 'body.data.plot',
 		unit: None | UnitId = None,
 		config: None | int = None,
+		job_sig: None | int = None,
 		stock: OneOrMany[StockId] = None,
 		doc_tag: None | dict[
 			Literal['with', 'without'],
@@ -60,6 +61,9 @@ class SVGQuery:
 
 		if config:
 			self._query['config'] = unit
+
+		if job_sig:
+			self._query['meta.jobid'] = job_sig
 
 		if custom_match:
 			self._query.update(custom_match)
