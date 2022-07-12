@@ -4,9 +4,10 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  14.05.2022
+# Last Modified Date:  12.07.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
+import yaml
 from typing import Any
 from collections.abc import Sequence
 from argparse import ArgumentParser
@@ -27,6 +28,7 @@ from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
+from ampel.util.hash import build_unsafe_dict_id
 
 
 h = {
@@ -43,7 +45,7 @@ h = {
 	# TODO: find better name
 	"enforce-base-path": "within a given doc, load only plots with base-path",
 	"last-body": "If body is a sequence (t2 docs), parse only the last body element",
-	"latest-doc": "using the provided matching criteria, show plot(s) only from latest doc",
+	"latest": "using the provided matching criteria, show plot(s) only from latest doc",
 	"with-plot-tag": "match plots with tag",
 	"without-plot-tag": "exclude plots with tag",
 	"with-doc-tag": "match plots embedded in doc with tag",
@@ -57,6 +59,7 @@ h = {
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
 	"col": "Collection name",
 	"one-db": "Whether the target ampel DB was created with flag one-db",
+	"job": "<path the job schema>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -98,11 +101,12 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'unit', type=str)
 		builder.add_arg('show|save.optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('show|save.optional', 'last-body', action="store_true")
-		builder.add_arg('show|save.optional', 'latest-doc', action="store_true")
+		builder.add_arg('show|save.optional', 'latest', action="store_true")
 		builder.add_arg('optional', 'scale', nargs='?', type=float, default=1.0)
 		builder.add_arg('optional', 'max-size', nargs='?', type=int)
 		builder.add_arg('show|save|clipboard.optional', "db", type=str, nargs="+")
 		builder.add_arg('show|save|watch|clipboard.optional', "one-db", action="store_true")
+		builder.add_arg('show|save|watch|clipboard.optional', "job", type=str)
 		builder.add_arg('watch.required', "db", type=str, nargs="+")
 		builder.add_arg('watch.required', "col", type=str, nargs="?")
 
@@ -131,11 +135,12 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.match', "custom-match", metavar="#", action=LoadJSONAction)
 
 		builder.add_example('show', "-stack -300 -t2")
-		builder.add_example('show', "-html -t3 -base-path body.plot -latest-doc -db HelloAmpel -one-db")
+		builder.add_example('show', "-html -t3 -base-path body.plot -latest -db HelloAmpel -one-db")
 		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2")
 		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
 		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
 		builder.add_example('show', "-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
+		builder.add_example('show', "-html -stack 1000 -config ampel_conf.yaml -t3 -base-path body.plot -unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml")
 		builder.add_example('clipboard', "-html")
 		builder.add_example('watch', "-db DipoleAP -col t3 -one-db -config ampel_conf.yaml -stack -png 200")
 		
@@ -156,6 +161,16 @@ class PlotCommand(AbsCoreCommand):
 
 		config = self.load_config(args['config'], unknown_args, freeze=False)
 		vault = self.get_vault(args)
+
+		if args['job']:
+			with open(args['job'], "r") as f:
+				job = yaml.safe_load(f)
+			if 'mongo' in job and 'prefix' in job['mongo']:
+				db_prefixes = [job['mongo']['prefix']]
+			args['one_db'] = True
+			job_sig: None | int = build_unsafe_dict_id(job, size=-32)
+		else:
+			job_sig = None
 
 		if db_prefixes:
 			for el in db_prefixes:
@@ -237,7 +252,7 @@ class PlotCommand(AbsCoreCommand):
 				limit = limit,
 				enforce_base_path= args['enforce_base_path'],
 				last_body = args['last_body'],
-				latest_doc = args['latest_doc']
+				latest_doc = args['latest']
 			)
 
 			if args['plots_col']:
@@ -249,6 +264,7 @@ class PlotCommand(AbsCoreCommand):
 						doc_tag = dtags,
 						unit = args.get("unit"),
 						stock = args.get("stock"),
+						job_sig = job_sig,
 						custom_match = args.get("custom_match")
 					)
 				)
@@ -264,6 +280,7 @@ class PlotCommand(AbsCoreCommand):
 									doc_tag = dtags,
 									unit = args.get("unit"),
 									stock = args.get("stock"),
+									job_sig = job_sig,
 									custom_match = args.get("custom_match")
 								)
 							)
@@ -278,6 +295,7 @@ class PlotCommand(AbsCoreCommand):
 									doc_tag = dtags,
 									unit = args.get("unit"),
 									stock = args.get("stock"),
+									job_sig = job_sig,
 									custom_match = args.get("custom_match")
 								)
 							)
