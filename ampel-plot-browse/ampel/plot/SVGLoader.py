@@ -71,7 +71,7 @@ class SVGLoader:
 		latest_doc: bool = False
 	) -> None:
 		self._db = db
-		self.logger = logger
+		self.logger: AmpelLogger = logger or AmpelLogger.get_logger()
 		self.limit = limit
 		self.last_body = last_body
 		self.latest_doc = latest_doc
@@ -103,13 +103,17 @@ class SVGLoader:
 		for q in self._queries:
 
 			if self._debug:
-				self.logger.debug(f"Running query (collection '{q.col}'): {q._query}")
+				dbname = self._db.get_collection(q.col).database._Database__name
+				self.logger.debug(
+					f"Running query (db '{dbname}' - collection '{q.col}'): {q._query}"
+				)
 
 			if self.latest_doc:
 				res = self._db.get_collection(q.col).find(q._query).sort("_id", -1).limit(1)
 				if self._debug:
-					if res.count():
-						self.logger.debug(f"{res.count()} documents matched [loading only the latest]")
+					count = self._db.get_collection(q.col).count_documents(q._query)
+					if count:
+						self.logger.debug(f"{count} documents matched [loading only the latest]")
 					else:
 						self.logger.debug("No document matched")
 			elif self.limit:
