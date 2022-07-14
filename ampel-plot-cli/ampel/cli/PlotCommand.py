@@ -4,10 +4,9 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  12.07.2022
+# Last Modified Date:  14.07.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import yaml
 from typing import Any
 from collections.abc import Sequence
 from argparse import ArgumentParser
@@ -17,6 +16,7 @@ from ampel.cli.ArgParserBuilder import ArgParserBuilder
 from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
+from ampel.cli.JobCommand import JobCommand
 from ampel.cli.utils import maybe_load_idmapper
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.log.LogFlag import LogFlag
@@ -28,7 +28,6 @@ from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
-from ampel.util.hash import build_unsafe_dict_id
 
 
 h = {
@@ -59,7 +58,7 @@ h = {
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
 	"col": "Collection name",
 	"one-db": "Whether the target ampel DB was created with flag one-db",
-	"job": "<path the job schema>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.",
+	"job": "<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -99,6 +98,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'id-mapper', type=str)
 		builder.add_arg('show|save.optional', 'base-path', type=str)
 		builder.add_arg('show|save.optional', 'unit', type=str)
+		builder.add_arg('show|save.optional', 'run', type=int)
 		builder.add_arg('show|save.optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('show|save.optional', 'last-body', action="store_true")
 		builder.add_arg('show|save.optional', 'latest', action="store_true")
@@ -106,7 +106,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('optional', 'max-size', nargs='?', type=int)
 		builder.add_arg('show|save|clipboard.optional', "db", type=str, nargs="+")
 		builder.add_arg('show|save|watch|clipboard.optional', "one-db", action="store_true")
-		builder.add_arg('show|save|watch|clipboard.optional', "job", type=str)
+		builder.add_arg('show|save|watch|clipboard.optional', "job", type=str, nargs="+")
 		builder.add_arg('watch.required', "db", type=str, nargs="+")
 		builder.add_arg('watch.required', "col", type=str, nargs="?")
 
@@ -162,13 +162,17 @@ class PlotCommand(AbsCoreCommand):
 		config = self.load_config(args['config'], unknown_args, freeze=False)
 		vault = self.get_vault(args)
 
+		logger = AmpelLogger.from_profile(
+			self.get_context(args, unknown_args, ContextClass=AmpelContext),
+			'console_debug' if args['debug'] else 'console_info',
+			base_flag=LogFlag.MANUAL_RUN
+		)
+
 		if args['job']:
-			with open(args['job'], "r") as f:
-				job = yaml.safe_load(f)
+			job, job_sig = JobCommand.get_job_schema(args['job'], logger)
 			if 'mongo' in job and 'prefix' in job['mongo']:
 				db_prefixes = [job['mongo']['prefix']]
 			args['one_db'] = True
-			job_sig: None | int = build_unsafe_dict_id(job, size=-32)
 		else:
 			job_sig = None
 
@@ -188,6 +192,20 @@ class PlotCommand(AbsCoreCommand):
 					one_db=args.get('one_db', False)
 				)
 			]
+
+		if args['job']:
+			run_id = next(
+				dbs[0].get_collection("events") \
+					.find({'jobid': job_sig}) \
+					.sort("_id", -1) \
+					.limit(1),
+				None
+			)
+			if run_id is None:
+				logger.info("No run found for specified job")
+				return
+			args['run'] = run_id['run']
+
 
 		if sub_op == "clipboard":
 			from ampel.plot.util.keyboard import InlinePynput
@@ -211,12 +229,6 @@ class PlotCommand(AbsCoreCommand):
 		if 'id_mapper' in args:
 			AuxUnitRegister.initialize(config)
 			maybe_load_idmapper(args)
-
-		logger = AmpelLogger.from_profile(
-			self.get_context(args, unknown_args, ContextClass=AmpelContext),
-			'console_debug' if args['debug'] else 'console_info',
-			base_flag=LogFlag.MANUAL_RUN
-		)
 
 		ptags: dict = {}
 		dtags: dict = {}
@@ -265,6 +277,7 @@ class PlotCommand(AbsCoreCommand):
 						unit = args.get("unit"),
 						stock = args.get("stock"),
 						job_sig = job_sig,
+						run_id = args.get("run"),
 						custom_match = args.get("custom_match")
 					)
 				)
@@ -281,6 +294,7 @@ class PlotCommand(AbsCoreCommand):
 									unit = args.get("unit"),
 									stock = args.get("stock"),
 									job_sig = job_sig,
+									run_id = args.get("run"),
 									custom_match = args.get("custom_match")
 								)
 							)
@@ -296,6 +310,7 @@ class PlotCommand(AbsCoreCommand):
 									unit = args.get("unit"),
 									stock = args.get("stock"),
 									job_sig = job_sig,
+									run_id = args.get("run"),
 									custom_match = args.get("custom_match")
 								)
 							)
