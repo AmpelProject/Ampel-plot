@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.06.2019
-# Last Modified Date:  12.07.2022
+# Last Modified Date:  14.07.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Literal, Any
@@ -28,6 +28,7 @@ class SVGQuery:
 		unit: None | UnitId = None,
 		config: None | int = None,
 		job_sig: None | int = None,
+		run_id: None | int = None,
 		stock: OneOrMany[StockId] = None,
 		doc_tag: None | dict[
 			Literal['with', 'without'],
@@ -64,6 +65,9 @@ class SVGQuery:
 
 		if job_sig:
 			self._query['meta.jobid'] = job_sig
+
+		if run_id:
+			self._query['meta.run'] = run_id
 
 		if custom_match:
 			self._query.update(custom_match)
