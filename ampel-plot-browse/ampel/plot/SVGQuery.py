@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.06.2019
-# Last Modified Date:  14.07.2022
+# Last Modified Date:  31.07.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Literal, Any
@@ -13,6 +13,7 @@ from ampel.mongo.schema import apply_schema, apply_excl_schema
 from ampel.model.operator.AnyOf import AnyOf
 from ampel.model.operator.AllOf import AllOf
 from ampel.model.operator.OneOf import OneOf
+from ampel.mongo.utils import match_one_or_many
 
 
 class SVGQuery:
@@ -27,8 +28,8 @@ class SVGQuery:
 		path: str = 'body.data.plot',
 		unit: None | UnitId = None,
 		config: None | int = None,
-		job_sig: None | int = None,
-		run_id: None | int = None,
+		job_sig: None | int | list[int] = None,
+		run_id: None | int | list[int] = None,
 		stock: OneOrMany[StockId] = None,
 		doc_tag: None | dict[
 			Literal['with', 'without'],
@@ -64,10 +65,10 @@ class SVGQuery:
 			self._query['config'] = unit
 
 		if job_sig:
-			self._query['meta.jobid'] = job_sig
+			self._query['meta.jobid'] = match_one_or_many(job_sig)
 
 		if run_id:
-			self._query['meta.run'] = run_id
+			self._query['meta.run'] = match_one_or_many(run_id)
 
 		if custom_match:
 			self._query.update(custom_match)
