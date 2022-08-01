@@ -8,6 +8,8 @@
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
+from bson import ObjectId # type: ignore
+from datetime import datetime
 from collections.abc import Sequence
 from argparse import ArgumentParser
 from ampel.base.AuxUnitRegister import AuxUnitRegister
@@ -58,7 +60,10 @@ h = {
 	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
 	"col": "Collection name",
 	"one-db": "Whether the target ampel DB was created with flag one-db",
+	"run-id": "Matches plots created during specified runs (-job arg will be ignored)",
 	"job": "<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.",
+	"job-id": "Matches plots created by specified job ids (-job arg will be ignored)",
+	"job-time-from": "Restrict event collection search using provided timestamp\n(used automatically by ampel job ... -show-plots)",
 	"verbose": "increases verbosity",
 	"debug": "debug"
 }
@@ -98,7 +103,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save.optional', 'id-mapper', type=str)
 		builder.add_arg('show|save.optional', 'base-path', type=str)
 		builder.add_arg('show|save.optional', 'unit', type=str)
-		builder.add_arg('show|save.optional', 'run', type=int)
+		builder.add_arg('show|save.optional', 'run-id', action=MaybeIntAction, nargs="+")
 		builder.add_arg('show|save.optional', 'enforce-base-path', action="store_true")
 		builder.add_arg('show|save.optional', 'last-body', action="store_true")
 		builder.add_arg('show|save.optional', 'latest', action="store_true")
@@ -107,6 +112,8 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_arg('show|save|clipboard.optional', "db", type=str, nargs="+")
 		builder.add_arg('show|save|watch|clipboard.optional', "one-db", action="store_true")
 		builder.add_arg('show|save|watch|clipboard.optional', "job", type=str, nargs="+")
+		builder.add_arg('show|save|watch|clipboard.optional', 'job-id', action=MaybeIntAction, nargs="+")
+		builder.add_arg('show|save.optional', "job-time-from", action=MaybeIntAction, nargs='?')
 		builder.add_arg('watch.required', "db", type=str, nargs="+")
 		builder.add_arg('watch.required', "col", type=str, nargs="?")
 
@@ -115,17 +122,20 @@ class PlotCommand(AbsCoreCommand):
 			{'name': 'png', 'nargs': '?', 'type': int, 'const': 96},
 			{'name': 'html', 'action': 'store_true'},
 		)
-		builder.add_arg('optional', 'stack', action='store', metavar='#', const=100, nargs='?', type=int, default=0)
+		builder.add_arg('optional',
+			'stack', action='store', metavar='#', const=100, nargs='?', type=int, default=0
+		)
 
 		builder.add_group('show|save.match', 'Plot selection arguments')
-
 		for el in (0, 1, 2, 3):
 			builder.add_arg('show|save.match', f'no-t{el}', action='store_true', help=f"Ignore t{el} plots")
-
 		for el in (0, 1, 2, 3):
 			builder.add_arg('show|save.match', f't{el}', action='store_true', help=f"Match only t{el} plots")
 
-		builder.add_arg('show|save.match', 'plots-col', action='store_true', help="Match only plots from plots collections")
+		builder.add_arg(
+			'show|save.match', 'plots-col', action='store_true',
+			help="Match only plots from plots collections"
+		)
 		builder.add_arg('show|save.match', "stock", action=MaybeIntAction, nargs="+")
 		builder.create_logic_args('show|save.match', "channel", "Channel")
 		builder.create_logic_args('show|save.match', "with-doc-tag", "Doc tag", json=False)
@@ -138,9 +148,18 @@ class PlotCommand(AbsCoreCommand):
 		builder.add_example('show', "-html -t3 -base-path body.plot -latest -db HelloAmpel -one-db")
 		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2")
 		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
-		builder.add_example('show', "-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC -custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'")
-		builder.add_example('show', "-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo -mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug")
-		builder.add_example('show', "-html -stack 1000 -config ampel_conf.yaml -t3 -base-path body.plot -unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml")
+		builder.add_example('show',
+			"-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC " +
+			"-custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'"
+		)
+		builder.add_example('show',
+			"-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo " +
+			"-mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug"
+		)
+		builder.add_example('show',
+			"-html -stack 1000 -config ampel_conf.yaml -t3 -base-path body.plot " +
+			"-unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml"
+		)
 		builder.add_example('clipboard', "-html")
 		builder.add_example('watch', "-db DipoleAP -col t3 -one-db -config ampel_conf.yaml -stack -png 200")
 		
@@ -168,7 +187,9 @@ class PlotCommand(AbsCoreCommand):
 			base_flag=LogFlag.MANUAL_RUN
 		)
 
-		if args['job']:
+		if args['job_id']:
+			job_sig = args['job_id']
+		elif args['job']:
 			job, job_sig = JobCommand.get_job_schema(args['job'], logger)
 			if 'mongo' in job and 'prefix' in job['mongo']:
 				db_prefixes = [job['mongo']['prefix']]
@@ -193,18 +214,38 @@ class PlotCommand(AbsCoreCommand):
 				)
 			]
 
-		if args['job']:
-			run_id = next(
-				dbs[0].get_collection("events") \
-					.find({'jobid': job_sig}) \
-					.sort("_id", -1) \
-					.limit(1),
-				None
-			)
+		run_ids = None
+
+		if args['run_id']:
+			run_ids = args['run_id']
+
+		elif args['job']:
+
+			match: dict[str, Any] = {'jobid': job_sig}
+			if args['job_time_from']:
+				match['_id'] = {
+					"$gt": ObjectId.from_datetime(
+						datetime.fromtimestamp(args['job_time_from'])
+					)
+				}
+
+				run_id = next(dbs[0].get_collection("events").find(match), None)
+
+			else:
+
+				run_id = next(
+					dbs[0].get_collection("events") \
+						.find(match) \
+						.sort("_id", -1) \
+						.limit(1),
+					None
+				)
+
 			if run_id is None:
 				logger.info("No run found for specified job")
 				return
-			args['run'] = run_id['run']
+
+			run_ids = run_id['run']
 
 
 		if sub_op == "clipboard":
@@ -277,7 +318,7 @@ class PlotCommand(AbsCoreCommand):
 						unit = args.get("unit"),
 						stock = args.get("stock"),
 						job_sig = job_sig,
-						run_id = args.get("run"),
+						run_id = run_ids,
 						custom_match = args.get("custom_match")
 					)
 				)
@@ -294,7 +335,7 @@ class PlotCommand(AbsCoreCommand):
 									unit = args.get("unit"),
 									stock = args.get("stock"),
 									job_sig = job_sig,
-									run_id = args.get("run"),
+									run_id = run_ids,
 									custom_match = args.get("custom_match")
 								)
 							)
@@ -310,7 +351,7 @@ class PlotCommand(AbsCoreCommand):
 									unit = args.get("unit"),
 									stock = args.get("stock"),
 									job_sig = job_sig,
-									run_id = args.get("run"),
+									run_id = run_ids,
 									custom_match = args.get("custom_match")
 								)
 							)
