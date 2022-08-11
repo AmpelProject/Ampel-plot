@@ -216,7 +216,7 @@ class PlotCommand(AbsCoreCommand):
 
 		run_ids = None
 
-		if args['run_id']:
+		if args.get('run_id'):
 			run_ids = args['run_id']
 
 		elif args['job']:
