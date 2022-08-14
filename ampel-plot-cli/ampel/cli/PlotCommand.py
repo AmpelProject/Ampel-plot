@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  14.07.2022
+# Last Modified Date:  14.08.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Any
@@ -19,7 +19,7 @@ from ampel.cli.AbsCoreCommand import AbsCoreCommand
 from ampel.cli.MaybeIntAction import MaybeIntAction
 from ampel.cli.LoadJSONAction import LoadJSONAction
 from ampel.cli.JobCommand import JobCommand
-from ampel.cli.utils import maybe_load_idmapper
+from ampel.cli.utils import maybe_load_idmapper, get_vault, get_db
 from ampel.log.AmpelLogger import AmpelLogger
 from ampel.log.LogFlag import LogFlag
 from ampel.plot.SVGCollection import SVGCollection
@@ -71,8 +71,9 @@ pressed = False
 
 class PlotCommand(AbsCoreCommand):
 
-	def __init__(self):
-		self.parsers = {}
+	@staticmethod
+	def get_sub_ops() -> list[str]:
+		return ["show", "save", "clipboard", "watch"]
 
 	# Mandatory implementation
 	def get_parser(self, sub_op: None | str = None) -> ArgumentParser | AmpelArgumentParser:
@@ -80,7 +81,7 @@ class PlotCommand(AbsCoreCommand):
 		if sub_op in self.parsers:
 			return self.parsers[sub_op]
 
-		sub_ops = ["show", "save", "clipboard", "watch"]
+		sub_ops = self.get_sub_ops()
 		if sub_op is None or sub_op not in sub_ops:
 			return AmpelArgumentParser.build_choice_help(
 				'plot', sub_ops, h, description = 'Show or export ampel plots.'
@@ -179,7 +180,7 @@ class PlotCommand(AbsCoreCommand):
 		dbs = []
 
 		config = self.load_config(args['config'], unknown_args, freeze=False)
-		vault = self.get_vault(args)
+		vault = get_vault(args)
 
 		logger = AmpelLogger.from_profile(
 			self.get_context(args, unknown_args, ContextClass=AmpelContext),
@@ -191,8 +192,8 @@ class PlotCommand(AbsCoreCommand):
 			job_sig = args['job_id']
 		elif args['job']:
 			job, job_sig = JobCommand.get_job_schema(args['job'], logger)
-			if 'mongo' in job and 'prefix' in job['mongo']:
-				db_prefixes = [job['mongo']['prefix']]
+			if job.mongo and job.mongo.prefix:
+				db_prefixes = [job.mongo.prefix]
 			args['one_db'] = True
 		else:
 			job_sig = None
@@ -201,14 +202,14 @@ class PlotCommand(AbsCoreCommand):
 			for el in db_prefixes:
 				config._config['mongo']['prefix'] = el
 				dbs.append(
-					self.get_db(
+					get_db(
 						config, vault, require_existing_db=True,
 						one_db=args.get('one_db', False)
 					)
 				)
 		else:
 			dbs = [
-				self.get_db(
+				get_db(
 					config, vault, require_existing_db=True,
 					one_db=args.get('one_db', False)
 				)
