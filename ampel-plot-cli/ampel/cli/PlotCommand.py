@@ -174,7 +174,9 @@ class PlotCommand(AbsCoreCommand):
 			'-unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml'
 		)
 		builder.example('clipboard', '-html')
-		builder.example('watch', '-db DipoleAP -col t3 -one-db -stack -png 200')
+		builder.example('watch', '-db MyDB -col t3 -one-db -stack -png 200')
+		builder.example('export', '-one-db -db SIM -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291')
+		builder.example('export', '-one-db -db SIM -format pdf -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291 62fde88cf4880a864494b292')
 		
 		self.parsers.update(
 			builder.get()
