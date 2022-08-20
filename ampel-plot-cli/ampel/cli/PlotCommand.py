@@ -4,9 +4,10 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  14.08.2022
+# Last Modified Date:  20.08.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
+import os
 from typing import Any
 from bson import ObjectId # type: ignore
 from datetime import datetime
@@ -25,47 +26,50 @@ from ampel.log.LogFlag import LogFlag
 from ampel.plot.SVGCollection import SVGCollection
 from ampel.plot.SVGLoader import SVGLoader
 from ampel.plot.SVGQuery import SVGQuery
+from ampel.plot.SVGPlot import SVGPlot
 from ampel.core.AmpelContext import AmpelContext
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
+from ampel.plot.util.transform import _svg_inkscape
+from ampel.mongo.utils import match_one_or_many
 
 
 h = {
-	"show": "Display ampel plots retrieved via DB query(ies)",
-	"save": "Not implemented yet (for now, please use 'show' and save the result(s) manually)",
-	"clipboard": "Monitors the clipboard for ampel plots which are then automatically displayed in browser",
-	"watch": "Monitors a given collection for ampel plots which are then automatically displayed in browser",
-	"config": "path to an ampel config file (yaml/json)",
-	"secrets": "path to a YAML secrets store in sops format",
-	"stock": "stock id(s). Comma sperated values can be used (without space)",
-	"base-path": "default: body.data.plot",
-	"unit": "docs will have to match the provided ampel unit name",
-	"limit": "limit the number of *documents* (not plots) returned by the underlying DB query",
+	'show': 'Display ampel plots retrieved via DB query(ies)',
+	'clipboard': 'Monitor the clipboard for ampel plots and display them in browser',
+	'watch': 'Monitor a given collection for new ampel plots and display them in browser',
+	'export': 'Exports plots (matched by id) to EPS/PDF/SVG (EPS and PDF require inkscape)',
+	'config': 'path to an ampel config file (yaml/json)',
+	'secrets': 'path to a YAML secrets store in sops format',
+	'stock': 'stock id(s). Comma sperated values can be used (without space)',
+	'base-path': 'default: body.data.plot',
+	'unit': 'docs will have to match the provided ampel unit name',
+	'limit': 'limit the number of *documents* (not plots) returned by the underlying DB query',
 	# TODO: find better name
-	"enforce-base-path": "within a given doc, load only plots with base-path",
-	"last-body": "If body is a sequence (t2 docs), parse only the last body element",
-	"latest": "using the provided matching criteria, show plot(s) only from latest doc",
-	"with-plot-tag": "match plots with tag",
-	"without-plot-tag": "exclude plots with tag",
-	"with-doc-tag": "match plots embedded in doc with tag",
-	"without-doc-tag": "exclude plots embedded in doc with tag",
-	"png": "convert to png (from svg). Default: 96 DPI",
-	"scale": "scale png size. Default: 1.0",
-	"max-size": "max-inline-size value of each HTML div",
-	"html": "html output format (includes plot titles)",
-	"stack": "stack <n> images into one html structure (activates html option). Default: 100",
-	"out": "path to file (printed to stdout otherwise)",
-	"db": "Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, '-mongo.prefix' value will be ignored",
-	"col": "Collection name",
-	"one-db": "Whether the target ampel DB was created with flag one-db",
-	"run-id": "Matches plots created during specified runs (-job arg will be ignored)",
-	"job": "<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.",
-	"job-id": "Matches plots created by specified job ids (-job arg will be ignored)",
-	"job-time-from": "Restrict event collection search using provided timestamp\n(used automatically by ampel job ... -show-plots)",
-	"verbose": "increases verbosity",
-	"debug": "debug"
+	'enforce-base-path': 'within a given doc, load only plots with base-path',
+	'last-body': 'If body is a sequence (t2 docs), parse only the last body element',
+	'latest': 'using the provided matching criteria, show plot(s) only from latest doc',
+	'with-plot-tag': 'match plots with tag',
+	'without-plot-tag': 'exclude plots with tag',
+	'with-doc-tag': 'match plots embedded in doc with tag',
+	'without-doc-tag': 'exclude plots embedded in doc with tag',
+	'png': 'convert to png (from svg). Default: 96 DPI',
+	'scale': 'scale png size. Default: 1.0',
+	'max-size': 'max-inline-size value of each HTML div',
+	'html': 'html output format (includes plot titles)',
+	'stack': 'stack <n> images into one html structure (activates html option). Default: 100',
+	'out': 'path to file (printed to stdout otherwise)',
+	'db': 'Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, "-mongo.prefix" value will be ignored',
+	'col': 'Collection name',
+	'one-db': 'Whether the target ampel DB was created with flag one-db',
+	'run-id': 'Matches plots created during specified runs (-job arg will be ignored)',
+	'job': '<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.',
+	'job-id': 'Matches plots created by specified job ids (-job arg will be ignored)',
+	'job-time-from': 'Restrict event collection search using provided timestamp\n(used automatically by ampel job ... -show-plots)',
+	'verbose': 'increases verbosity',
+	'debug': 'debug'
 }
 pressed = False
 
@@ -73,9 +77,9 @@ class PlotCommand(AbsCoreCommand):
 
 	@staticmethod
 	def get_sub_ops() -> list[str]:
-		return ["show", "save", "clipboard", "watch"]
+		return ['show', 'export', 'clipboard', 'watch']
 
-	# Mandatory implementation
+	# Implement
 	def get_parser(self, sub_op: None | str = None) -> ArgumentParser | AmpelArgumentParser:
 
 		if sub_op in self.parsers:
@@ -84,85 +88,93 @@ class PlotCommand(AbsCoreCommand):
 		sub_ops = self.get_sub_ops()
 		if sub_op is None or sub_op not in sub_ops:
 			return AmpelArgumentParser.build_choice_help(
-				'plot', sub_ops, h, description = 'Show or export ampel plots.'
+				'plot', sub_ops, h, description = 'Display or export ampel plots.'
 			)
 
-		builder = ArgParserBuilder("plot")
+		builder = ArgParserBuilder('plot')
 		builder.add_parsers(sub_ops, h)
 
 		builder.notation_add_note_references()
 		builder.notation_add_example_references()
 
-		# Required
-		builder.add_arg('show|save|clipboard|watch.optional', 'config', type=str)
-		builder.add_arg('save.required', 'out', type=str)
+		builder.req('config')
+		builder.req('out', 'export')
+		builder.opt('format', 'export', choices={'eps', 'pdf', 'svg'}, default='svg')
+		builder.req('oid', 'export', nargs='+')
 
-		# Optional
-		builder.add_arg('show|save.optional', 'limit', type=int)
-		builder.add_arg('show|save|watch.optional', 'secrets')
-		builder.add_arg('optional', 'debug', action="store_true")
-		builder.add_arg('show|save.optional', 'id-mapper', type=str)
-		builder.add_arg('show|save.optional', 'base-path', type=str)
-		builder.add_arg('show|save.optional', 'unit', type=str)
-		builder.add_arg('show|save.optional', 'run-id', action=MaybeIntAction, nargs="+")
-		builder.add_arg('show|save.optional', 'enforce-base-path', action="store_true")
-		builder.add_arg('show|save.optional', 'last-body', action="store_true")
-		builder.add_arg('show|save.optional', 'latest', action="store_true")
-		builder.add_arg('optional', 'scale', nargs='?', type=float, default=1.0)
-		builder.add_arg('optional', 'max-size', nargs='?', type=int)
-		builder.add_arg('show|save|clipboard.optional', "db", type=str, nargs="+")
-		builder.add_arg('show|save|watch|clipboard.optional', "one-db", action="store_true")
-		builder.add_arg('show|save|watch|clipboard.optional', "job", type=str, nargs="+")
-		builder.add_arg('show|save|watch|clipboard.optional', 'job-id', action=MaybeIntAction, nargs="+")
-		builder.add_arg('show|save.optional', "job-time-from", action=MaybeIntAction, nargs='?')
-		builder.add_arg('watch.required', "db", type=str, nargs="+")
-		builder.add_arg('watch.required', "col", type=str, nargs="?")
+		builder.opt('limit', 'show', type=int)
+		builder.opt('secrets')
+		builder.opt('debug', action='store_true')
+		builder.opt('id-mapper', 'show', type=str)
+		builder.opt('base-path', 'show', type=str)
+		builder.opt('unit', 'show', type=str)
+		builder.opt('run-id', 'show', action=MaybeIntAction, nargs='+')
+		builder.opt('enforce-base-path', 'show', action='store_true')
+		builder.opt('last-body', 'show', action='store_true')
+		builder.opt('latest', 'show', action='store_true')
+		builder.opt('scale', nargs='?', type=float, default=1.0)
+		builder.opt('max-size', nargs='?', type=int)
+		builder.opt('db', 'show|export|clipboard', type=str, nargs='+')
+		builder.opt('one-db', action='store_true')
+		builder.opt('job', 'show|watch|clipboard', type=str, nargs='+')
+		builder.opt('job-id', 'show|watch|clipboard', action=MaybeIntAction, nargs='+')
+		builder.opt('job-time-from', 'show', action=MaybeIntAction, nargs='?')
+		builder.req('db', 'watch', type=str, nargs='+')
+		builder.req('col', 'watch', type=str, nargs='?')
 
 		# Optional mutually exclusive args
-		builder.add_x_args('optional',
-			{'name': 'png', 'nargs': '?', 'type': int, 'const': 96},
-			{'name': 'html', 'action': 'store_true'},
+		builder.xargs(
+			group='optional', sub_ops='show|watch|clipboard', xargs=[
+				{'name': 'png', 'nargs': '?', 'type': int, 'const': 96},
+				{'name': 'html', 'action': 'store_true'}
+			]
 		)
-		builder.add_arg('optional',
-			'stack', action='store', metavar='#', const=100, nargs='?', type=int, default=0
+		builder.opt(
+			'stack', 'show|watch|clipboard',
+			action='store', metavar='#', const=100, nargs='?', type=int, default=0
 		)
 
-		builder.add_group('show|save.match', 'Plot selection arguments')
+		builder.add_group('match', 'Plot selection arguments', sub_ops='show|watch')
 		for el in (0, 1, 2, 3):
-			builder.add_arg('show|save.match', f'no-t{el}', action='store_true', help=f"Ignore t{el} plots")
-		for el in (0, 1, 2, 3):
-			builder.add_arg('show|save.match', f't{el}', action='store_true', help=f"Match only t{el} plots")
+			builder.arg(
+				f'no-t{el}', group='match', sub_ops='show|watch',
+				action='store_true', help=f'Ignore t{el} plots'
+			)
+			builder.arg(
+				f't{el}', group='match', sub_ops='show|watch',
+				action='store_true', help=f'Match only t{el} plots'
+			)
 
-		builder.add_arg(
-			'show|save.match', 'plots-col', action='store_true',
-			help="Match only plots from plots collections"
+		builder.arg(
+			'plots-col', group='match', sub_ops='show|watch', action='store_true',
+			help='Match only plots from plots collections'
 		)
-		builder.add_arg('show|save.match', "stock", action=MaybeIntAction, nargs="+")
-		builder.create_logic_args('show|save.match', "channel", "Channel")
-		builder.create_logic_args('show|save.match', "with-doc-tag", "Doc tag", json=False)
-		builder.create_logic_args('show|save.match', "without-doc-tag", "Doc tag", json=False)
-		builder.create_logic_args('show|save.match', "with-plot-tag", "Plot tag", json=False)
-		builder.create_logic_args('show|save.match', "without-plot-tag", "Plot tag", json=False)
-		builder.add_arg('show|save.match', "custom-match", metavar="#", action=LoadJSONAction)
+		builder.arg('stock', group='match', sub_ops='show|watch', action=MaybeIntAction, nargs='+')
+		builder.logic_args('channel', descr='Channel', group='match', sub_ops='show|watch')
+		builder.logic_args('with-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
+		builder.logic_args('without-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
+		builder.logic_args('with-plot-tag', descr='Plot tag', group='match', sub_ops='show|watch', json=False)
+		builder.logic_args('without-plot-tag', descr='Plot tag', group='match', sub_ops='show|watch', json=False)
+		builder.arg('custom-match', group='match', sub_ops='show|watch', metavar='#', action=LoadJSONAction)
 
-		builder.add_example('show', "-stack -300 -t2")
-		builder.add_example('show', "-html -t3 -base-path body.plot -latest -db HelloAmpel -one-db")
-		builder.add_example('show', "-html -t2 -stock 123456 -db DB1 DB2")
-		builder.add_example('show', "-stack -t2 -png 300 -limit 10")
-		builder.add_example('show',
-			"-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC " +
-			"-custom-match '{\"body.data.ned.sep\": {\"$lte\": 10}}'"
+		builder.example('show', '-stack -300 -t2')
+		builder.example('show', '-html -t3 -base-path body.plot -latest -db HelloAmpel -one-db')
+		builder.example('show', '-html -t2 -stock 123456 -db DB1 DB2')
+		builder.example('show', '-stack -t2 -png 300 -limit 10')
+		builder.example('show',
+			'-stack -limit 10 -t2 -with-plot-tag SNCOSMO -with-doc-tag NED_NEAREST_IS_SPEC ' +
+			'-custom-match \'{\"body.data.ned.sep\": {\"$lte\": 10}}\''
 		)
-		builder.add_example('show',
-			"-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo " +
-			"-mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug"
+		builder.example('show',
+			'-stack -t2 -with-doc-tag NED_NEAREST_IS_SPEC -unit T2PS1ThumbNedSNCosmo ' +
+			'-mongo.prefix Dipole2 -resource.mongo localhost:27050 -debug'
 		)
-		builder.add_example('show',
-			"-html -stack 1000 -config ampel_conf.yaml -t3 -base-path body.plot " +
-			"-unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml"
+		builder.example('show',
+			'-html -stack 1000 -t3 -base-path body.plot ' +
+			'-unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml'
 		)
-		builder.add_example('clipboard', "-html")
-		builder.add_example('watch', "-db DipoleAP -col t3 -one-db -config ampel_conf.yaml -stack -png 200")
+		builder.example('clipboard', '-html')
+		builder.example('watch', '-db DipoleAP -col t3 -one-db -stack -png 200')
 		
 		self.parsers.update(
 			builder.get()
@@ -174,9 +186,9 @@ class PlotCommand(AbsCoreCommand):
 	# Mandatory implementation
 	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: None | str = None) -> None:
 
-		stack = args.get("stack")
-		limit = args.get("limit") or 0
-		db_prefixes = args.get("db")
+		stack = args.get('stack')
+		limit = args.get('limit') or 0
+		db_prefixes = args.get('db')
 		dbs = []
 
 		config = self.load_config(args['config'], unknown_args, freeze=False)
@@ -188,9 +200,9 @@ class PlotCommand(AbsCoreCommand):
 			base_flag=LogFlag.MANUAL_RUN
 		)
 
-		if args['job_id']:
+		if args.get('job_id'):
 			job_sig = args['job_id']
-		elif args['job']:
+		elif args.get('job'):
 			job, job_sig = JobCommand.get_job_schema(args['job'], logger)
 			if job.mongo and job.mongo.prefix:
 				db_prefixes = [job.mongo.prefix]
@@ -220,36 +232,65 @@ class PlotCommand(AbsCoreCommand):
 		if args.get('run_id'):
 			run_ids = args['run_id']
 
-		elif args['job']:
+		elif args.get('job'):
 
-			match: dict[str, Any] = {'jobid': job_sig}
+			mcrit: dict[str, Any] = {'jobid': job_sig}
 			if args['job_time_from']:
-				match['_id'] = {
-					"$gt": ObjectId.from_datetime(
+				mcrit['_id'] = {
+					'$gt': ObjectId.from_datetime(
 						datetime.fromtimestamp(args['job_time_from'])
 					)
 				}
 
-				run_id = next(dbs[0].get_collection("events").find(match), None)
+				run_id = next(dbs[0].get_collection('events').find(mcrit), None)
 
 			else:
 
 				run_id = next(
-					dbs[0].get_collection("events") \
-						.find(match) \
-						.sort("_id", -1) \
+					dbs[0].get_collection('events') \
+						.find(mcrit) \
+						.sort('_id', -1) \
 						.limit(1),
 					None
 				)
 
 			if run_id is None:
-				logger.info("No run found for specified job")
+				logger.info('No run found for specified job')
 				return
 
 			run_ids = run_id['run']
 
 
-		if sub_op == "clipboard":
+		if sub_op == 'export':
+
+			docs = dbs[0] \
+				.get_collection('plots') \
+				.find({'_id': match_one_or_many([ObjectId(el) for el in args['oid']])})
+
+			i = 0
+			inkscape = args['format'] != 'svg'
+			for doc in docs:
+				i += 1
+				if i == 1:
+					print("Exporting:")
+				if inkscape:
+					_svg_inkscape(
+						SVGPlot(doc).get(), args['out'],
+						doc['name'].replace('.svg', ''),
+						ext = args['format']
+					)
+				else:
+					outname = os.path.join(args['out'], doc['name'])
+					with open(outname, 'w') as f:
+						f.write(SVGPlot(doc).get())
+						print(outname)
+
+			if i == 0:
+				print("Plot(s) not found")
+
+			return
+
+		if sub_op == 'clipboard':
 			from ampel.plot.util.keyboard import InlinePynput
 			ipo = InlinePynput()
 			read_from_clipboard(
@@ -257,12 +298,11 @@ class PlotCommand(AbsCoreCommand):
 				plots_col = dbs[0].get_collection('plots'),
 				keyboard_callback = ipo.is_ctrl_pressed
 			)
-
 		
-		if (x := args.get('base_path')) and not x.startswith("body."):
-			raise ValueError("Option 'base-path' must start with 'body.'")
+		if (x := args.get('base_path')) and not x.startswith('body.'):
+			raise ValueError('Option "base-path" must start with "body."')
 
-		if sub_op == "watch":
+		if sub_op == 'watch':
 			read_from_db(
 				dbs[0].get_collection(args['col']),
 				PlotBrowseOptions(**args)
@@ -275,22 +315,22 @@ class PlotCommand(AbsCoreCommand):
 		ptags: dict = {}
 		dtags: dict = {}
 
-		for el in ("with_doc_tag", "with_doc_tags_and", "with_doc_tags_or"):
+		for el in ('with_doc_tag', 'with_doc_tags_and', 'with_doc_tags_or'):
 			if args.get(el):
 				dtags['with'] = args.get(el)
 				break
 
-		for el in ("without_doc_tag", "without_doc_tags_and", "without_doc_tags_or"):
+		for el in ('without_doc_tag', 'without_doc_tags_and', 'without_doc_tags_or'):
 			if args.get(el):
 				dtags['without'] = args.get(el)
 				break
 
-		for el in ("with_plot_tag", "with_plot_tags_and", "with_plot_tags_or"):
+		for el in ('with_plot_tag', 'with_plot_tags_and', 'with_plot_tags_or'):
 			if args.get(el):
 				ptags['with'] = args.get(el)
 				break
 
-		for el in ("without_plot_tag", "without_plot_tags_and", "without_plot_tags_or"):
+		for el in ('without_plot_tag', 'without_plot_tags_and', 'without_plot_tags_or'):
 			if args.get(el):
 				ptags['without'] = args.get(el)
 				break
@@ -312,20 +352,20 @@ class PlotCommand(AbsCoreCommand):
 			if args['plots_col']:
 				loader.add_query(
 					SVGQuery(
-						col = "plots",
-						path = "",
+						col = 'plots',
+						path = '',
 						plot_tag = ptags,
 						doc_tag = dtags,
-						unit = args.get("unit"),
-						stock = args.get("stock"),
+						unit = args.get('unit'),
+						stock = args.get('stock'),
 						job_sig = job_sig,
 						run_id = run_ids,
-						custom_match = args.get("custom_match")
+						custom_match = args.get('custom_match')
 					)
 				)
 			else:
-				if [k for k in ("t0", "t1", "t2", "t3") if args.get(k, False)]:
-					for el in ("t0", "t1", "t2", "t3"):
+				if [k for k in ('t0', 't1', 't2', 't3') if args.get(k, False)]:
+					for el in ('t0', 't1', 't2', 't3'):
 						if args[el]:
 							loader.add_query(
 								SVGQuery(
@@ -333,27 +373,27 @@ class PlotCommand(AbsCoreCommand):
 									path = args.get('base_path') or 'body.data.plot',
 									plot_tag = ptags,
 									doc_tag = dtags,
-									unit = args.get("unit"),
-									stock = args.get("stock"),
+									unit = args.get('unit'),
+									stock = args.get('stock'),
 									job_sig = job_sig,
 									run_id = run_ids,
-									custom_match = args.get("custom_match")
+									custom_match = args.get('custom_match')
 								)
 							)
 				else:
-					for el in ("t0", "t1", "t2", "t3"):
-						if not args.get(f"no-{el}"):
+					for el in ('t0', 't1', 't2', 't3'):
+						if not args.get(f'no-{el}'):
 							loader.add_query(
 								SVGQuery(
 									col = el, # type: ignore[arg-type]
 									path = args.get('base_path') or 'body.data.plot',
 									plot_tag = ptags,
 									doc_tag = dtags,
-									unit = args.get("unit"),
-									stock = args.get("stock"),
+									unit = args.get('unit'),
+									stock = args.get('stock'),
 									job_sig = job_sig,
 									run_id = run_ids,
-									custom_match = args.get("custom_match")
+									custom_match = args.get('custom_match')
 								)
 							)
 
@@ -367,7 +407,7 @@ class PlotCommand(AbsCoreCommand):
 					for svg in v._svgs:
 						i += 1
 						if len(dbs) > 1:
-							svg._record['title'] += f"\n<span style='color: steelblue'>{db.prefix}</span>"
+							svg._record['title'] += f'\n<span style="color: steelblue">{db.prefix}</span>'
 						scol.add_svg_plot(svg)
 						if i % stack == 0:
 							show_collection(scol, pbo, print_func=print)
@@ -381,4 +421,4 @@ class PlotCommand(AbsCoreCommand):
 			show_collection(scol, PlotBrowseOptions(**args), print_func=print)
 
 		if i == 1:
-			AmpelLogger.get_logger().info("No plot matched")
+			AmpelLogger.get_logger().info('No plot matched')
