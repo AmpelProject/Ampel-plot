@@ -88,6 +88,18 @@
 
 			function copyURI(evt) {
 				evt.preventDefault();
+				evt.target.innerHTML = 'copied!';
+				evt.target.setAttribute(
+					'style', 'color:darkred;display:inline-block;padding:5px;'+
+					'border:2px solid red;border-radius:2px 2px 2px;'
+				);
+				setTimeout(
+					function() {
+						evt.target.innerHTML = 'oid';
+						evt.target.setAttribute('style', 'cursor:copy;color:blue;text-decoration:underline;');
+					},
+					1000
+				)
 				navigator.clipboard.writeText(evt.target.getAttribute('class')).then(() => {
 				  /* clipboard successfully set */
 				}, () => {
