@@ -7,7 +7,7 @@
 # Last Modified Date:  15.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import pkg_resources # type: ignore[import]
+import pkg_resources
 from multiprocessing import Pool
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
@@ -73,13 +73,13 @@ class SVGCollection:
 		flexbox_wrap: bool = True,
 		full_html: bool = True,
 		png_convert: None | int = None
-	) -> None | str:
+	) -> str:
 		"""
 		:param scale: if None, native scaling is used
 		"""
 
 		if hide_if_empty and not self._svgs:
-			return None
+			return ""
 
 		if full_html:
 			html = base_html
