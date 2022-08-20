@@ -20,6 +20,7 @@ from ampel.log.AmpelLogger import AmpelLogger
 from ampel.plot.SVGQuery import SVGQuery
 from ampel.plot.T2SVGQuery import T2SVGQuery
 from ampel.plot.SVGCollection import SVGCollection
+from ampel.plot.util.load import _check_side_load
 from ampel.util.recursion import walk_and_process_dict
 from ampel.model.operator.AnyOf import AnyOf
 from ampel.model.operator.AllOf import AllOf
@@ -130,7 +131,7 @@ class SVGLoader:
 					self.logger.debug(f"Parsing {el['_id']}")
 
 				if q.col == "plots":
-					self._plots[None].add_raw_db_dict(el)
+					self._plots[None].add_raw_db_dict(el) # type: ignore
 					continue
 
 				if not el.get('body'):
@@ -208,6 +209,7 @@ class SVGLoader:
 		if not plots:
 			return
 
+		side_loads: list[SVGRecord] = []
 		for i, p in enumerate(plots):
 
 			if self._debug:
@@ -218,7 +220,7 @@ class SVGLoader:
 					wqt = query.plot_tag['with']
 					if (
 						(isinstance(wqt, AllOf) and not all(x in p['tag'] for x in wqt.all_of)) or
-						(isinstance(wqt, AnyOf) and not [x in p['tag'] for x in wqt.any_of]) or
+						(isinstance(wqt, AnyOf) and not [y in p['tag'] for y in wqt.any_of]) or
 						(isinstance(wqt, OneOf) and not wqt.any_of == [p['tag']]) or
 						(isinstance(wqt, (int, str)) and wqt not in p['tag'])
 					):
@@ -227,8 +229,11 @@ class SVGLoader:
 						continue
 
 			if isinstance(p['svg'], ObjectId):
-				if self._debug:
-					self.logger.debug(f"Side-loading {p['name']}")
-				p['svg'] = next(self._plot_col.find({'_id': p['svg']}))['svg']
+				side_loads.append(p)
+			else:
+				self._plots[stock].add_raw_db_dict(p)
 
-			self._plots[stock].add_raw_db_dict(p)
+		if side_loads:
+			_check_side_load(side_loads, self._plot_col)
+			for el in side_loads:
+				self._plots[stock].add_raw_db_dict(el)
