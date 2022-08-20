@@ -71,7 +71,12 @@
 	<script>
 
 		function setup() {
-			document.querySelector('#datetime').innerHTML = new Date().toISOString().replace('T', ' ').substr(0, 16);
+
+			document.querySelector('#datetime').innerHTML = new Date()
+				.toISOString()
+				.replace('T', ' ')
+				.substr(0, 16);
+
 			val = document.querySelector('#maxwidth').value + 'px';
 			document.querySelectorAll('.mainimg').forEach(
 				function(img) {
@@ -80,14 +85,47 @@
 					img.onclick = imgClick;
 				}
 			);
+
+			function copyURI(evt) {
+				evt.preventDefault();
+				navigator.clipboard.writeText(evt.target.getAttribute('class')).then(() => {
+				  /* clipboard successfully set */
+				}, () => {
+				  /* clipboard write failed */
+				});
+			}
+
+			document.querySelectorAll('.h3tags').forEach(
+				function(h3t) {
+					h3t.style.maxInlineSize = val;
+					arr = JSON.parse(h3t.textContent.replaceAll('\'', '"'));
+					h3t.innerHTML = ""
+					for (i=0; i<arr.length; i++) {
+						if (arr[i].startsWith('oid:')) {
+							s = document.createElement("span");
+							s.setAttribute('class', arr[i].substring(4));
+							s.setAttribute('style', 'cursor:copy;color:blue;text-decoration:underline;');
+							s.appendChild(document.createTextNode('oid '));
+							s.onclick = function(event) {copyURI(event);};
+							h3t.appendChild(s);
+						}
+						else {
+							h3t.appendChild(
+								document.createTextNode(arr[i] + " ")
+							);
+						}
+					}
+				}
+			)
 		}
 
 		function setMaxInlineSize() {
 			val = document.querySelector('#maxwidth').value + 'px';
 			document.querySelectorAll('.mainimg').forEach(
-				function(img) {
-					img.style.maxInlineSize = val;
-				}
+				function(img) {img.style.maxInlineSize = val;}
+			);
+			document.querySelectorAll('.h3tags').forEach(
+				function(h3t) {h3t.style.maxInlineSize = val;}
 			);
 		}
 
@@ -275,6 +313,7 @@
 				}
 			);
 		}
+
 
 		document.getElementById('tags').addEventListener(
 			'keyup', function(event) {
