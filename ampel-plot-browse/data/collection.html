@@ -182,7 +182,12 @@
 		function showOnly() {
 
 			console.log('Filtering divs');
-			tags = document.querySelector('#tags').value.toUpperCase().split(' ');
+			tv = document.querySelector('#tags').value;
+			if (!tv) {
+				showAll();
+				return;
+			}
+			tags = tv.toUpperCase().split(' ');
 			or_tags = Array(tags.length);
 			for (var j=0; j<tags.length; j++) {
 				if (tags[j].indexOf("|") != -1)
