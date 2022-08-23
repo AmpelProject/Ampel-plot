@@ -139,19 +139,9 @@
 					arr = JSON.parse(h3t.textContent.replaceAll('\'', '"'));
 					h3t.innerHTML = ""
 					for (i=0; i<arr.length; i++) {
-						if (arr[i].startsWith('oid:')) {
-							s = document.createElement("span");
-							s.setAttribute('class', arr[i].substring(4));
-							s.setAttribute('style', 'cursor:copy;color:blue;text-decoration:underline;');
-							s.appendChild(document.createTextNode('oid '));
-							s.onclick = function(event) {copyURI(event);};
-							h3t.appendChild(s);
-						}
-						else {
-							h3t.appendChild(
-								document.createTextNode(arr[i] + " ")
-							);
-						}
+						h3t.appendChild(
+							document.createTextNode(arr[i] + " ")
+						);
 					}
 				}
 			)
