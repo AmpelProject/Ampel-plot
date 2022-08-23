@@ -43,7 +43,11 @@ class SVGPlot:
 
 
 	def get_file_name(self) -> str:
-		return self._record['name'] # type: ignore
+		return self._record['name']
+
+
+	def get_oid(self) -> None | str:
+		return self._record['oid']
 
 
 	def has_tags(self, tags: Sequence[Tag]) -> bool:
@@ -95,6 +99,20 @@ class SVGPlot:
 		return first + tags + '</h3>'
 
 
+	def _get_extra(self, display: bool = False) -> str:
+
+		if display:
+			out = '<h3 class="h3extra">'
+		else:
+			out = '<h3 class="h3extra" style="display:none">'
+
+		if (oid := self.get_oid()):
+			out += f'<span class="oid" data-oid="{oid}">oid</span>'
+
+		out += f'<a href="#" download="{self.get_file_name()}">download</a></h3>'
+		return out
+
+
 	def get(self, scale: float = 1.0) -> str:
 		if scale == 1.0:
 			return self._record['svg'] # type: ignore[return-value]
@@ -141,8 +159,9 @@ class SVGPlot:
 		if tags_on_top:
 			html += self._get_tags(include_doc_tags, html_escape=True)
 
+		html += self._get_extra()
+
 		# html += SVGPlot.display_div
-		html += ""
 
 		if isinstance(self._record['svg'], bytes):
 			raise ValueError("SVGRecord should not be compressed")
