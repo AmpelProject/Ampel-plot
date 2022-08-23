@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                17.05.2019
-# Last Modified Date:  20.08.2022
+# Last Modified Date:  23.08.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import base64
@@ -110,12 +110,11 @@ def _check_side_load(j: Any, col: Collection) -> None:
 	if isinstance(j, dict) and 'svg' in j:
 		if isinstance(j['svg'], str) and len(j['svg']) == 24:
 			print_func(f"Side-loading {j['name']}")
-			oid = ObjectId(j['svg'])
-			_add_oid_as_tag(j, oid)
-			j['svg'] = next(col.find({'_id': oid}))['svg']
+			j['oid'] = j['svg']
+			j['svg'] = next(col.find({'_id': ObjectId(j['svg'])}))['svg']
 		elif isinstance(j['svg'], ObjectId):
 			print_func(f"Side-loading {j['name']}")
-			_add_oid_as_tag(j, j['svg'])
+			j['oid'] = str(j['svg'])
 			j['svg'] = next(col.find({'_id': j['svg']}))['svg']
 
 	elif isinstance(j, list):
@@ -138,12 +137,4 @@ def _check_side_load(j: Any, col: Collection) -> None:
 			for i, el in ids:
 				print_func(f"Side-loading {j[i]['name']}")
 				j[i]['svg'] = resolved[el]
-				_add_oid_as_tag(j[i], el)
-
-
-def _add_oid_as_tag(j: Any, oid: ObjectId) -> None:
-	oid = 'oid:' + str(oid)
-	if j['tag']:
-		j['tag'].append(oid)
-	else:
-		j['tag'] = [oid]
+				j[i]['oid'] = str(el)
