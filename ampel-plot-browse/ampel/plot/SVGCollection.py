@@ -103,7 +103,10 @@ class SVGCollection:
 
 			with Pool() as pool:
 				futures = [
-					pool.apply_async(svg_to_png_html, (svg._record['svg'], png_convert, scale))
+					pool.apply_async(
+						svg_to_png_html,
+						(svg._record['svg'], png_convert, scale)
+					)
 					for svg in self._svgs
 				]
 				for f, svg in zip(futures, self._svgs):
