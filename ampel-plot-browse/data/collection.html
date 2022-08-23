@@ -25,6 +25,19 @@
 		.mainimg {
 			height: auto;
 		}
+		.oid {
+			cursor: copy;
+			color: blue;
+			text-decoration: underline;
+			padding: 5px;
+		}
+		.copied {
+			color: darkred;
+			display: inline-block;
+			padding: 5px;
+			border: 2px solid red;
+			border-radius: 2px 2px 2px;
+		}
 		.modal {
 			display: none;
 			position: fixed;
@@ -62,6 +75,7 @@
 		<button onclick='toggleDivs()'>Toggle</button>
 		<button id='btn_h3tags' onclick='toggle("h3tags")'>Tags</button>
 		<button id='btn_h3title' onclick='toggle("h3title")'>Titles</button>
+		<button id='btn_h3extra' onclick='toggle("h3extra")'>Extra</button>
 		<input id='padding' type='text' placeholder='padding' style='width: 60px'/>
 		<input id='maxwidth' type='range' min='1' max='800' value='400' style='vertical-align: middle'/>🔍
 		<div id='datetime' style='display: inline; position: absolute; left: 0px; color: grey; padding-left: 10px;'></div>
@@ -86,21 +100,33 @@
 				}
 			);
 
+			document.querySelectorAll('.h3extra').forEach(
+				function(h3e) {
+					var children = h3e.children;
+					for (i=0; i<children.length; i++) {
+						var obj = children[i];
+						if (obj.className == 'oid') {
+							obj.onclick = function(event) {copyURI(event);};
+						}
+						if (obj.tagName == 'A') {
+							obj.href = h3e.nextElementSibling.src;
+						}
+					}
+				}
+			)
+
 			function copyURI(evt) {
 				evt.preventDefault();
 				evt.target.innerHTML = 'copied!';
-				evt.target.setAttribute(
-					'style', 'color:darkred;display:inline-block;padding:5px;'+
-					'border:2px solid red;border-radius:2px 2px 2px;'
-				);
+				evt.target.className = 'copied';
 				setTimeout(
 					function() {
 						evt.target.innerHTML = 'oid';
-						evt.target.setAttribute('style', 'cursor:copy;color:blue;text-decoration:underline;');
+						evt.target.className = 'oid';
 					},
 					1000
 				)
-				navigator.clipboard.writeText(evt.target.getAttribute('class')).then(() => {
+				navigator.clipboard.writeText(evt.target.getAttribute('data-oid')).then(() => {
 				  /* clipboard successfully set */
 				}, () => {
 				  /* clipboard write failed */
