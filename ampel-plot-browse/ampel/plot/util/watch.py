@@ -26,7 +26,7 @@ def read_from_db(col: Collection, pbo: PlotBrowseOptions) -> None:
 		last_doc = next(col.find({'_id': -1}).limit(1), None)
 		latest_ts = last_doc['meta']['ts'] if last_doc else time()
 
-		plots_col = col.database.get_collection("plots")
+		plots_col = col.database.get_collection('plot')
 		col = col.database.get_collection(
 			col.name,
 			codec_options = CodecOptions(document_class=RawBSONDocument)

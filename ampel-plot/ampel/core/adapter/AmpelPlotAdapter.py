@@ -29,7 +29,7 @@ class AmpelPlotAdapter(AbsUnitResultAdapter):
 			arg = ur.body,
 			callback = _insert_plots,
 			match = ['plot'],
-			col = self.context.db.get_collection("plots")
+			col = self.context.db.get_collection('plot')
 		)
 
 		return ur

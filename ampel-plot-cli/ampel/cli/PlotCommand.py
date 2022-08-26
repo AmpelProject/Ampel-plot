@@ -244,12 +244,12 @@ class PlotCommand(AbsCoreCommand):
 					)
 				}
 
-				run_id = next(dbs[0].get_collection('events').find(mcrit), None)
+				run_id = next(dbs[0].get_collection('event').find(mcrit), None)
 
 			else:
 
 				run_id = next(
-					dbs[0].get_collection('events') \
+					dbs[0].get_collection('event') \
 						.find(mcrit) \
 						.sort('_id', -1) \
 						.limit(1),
@@ -266,7 +266,7 @@ class PlotCommand(AbsCoreCommand):
 		if sub_op == 'export':
 
 			docs = dbs[0] \
-				.get_collection('plots') \
+				.get_collection('plot') \
 				.find({'_id': match_one_or_many([ObjectId(el) for el in args['oid']])})
 
 			i = 0
@@ -297,7 +297,7 @@ class PlotCommand(AbsCoreCommand):
 			ipo = InlinePynput()
 			read_from_clipboard(
 				PlotBrowseOptions(**args),
-				plots_col = dbs[0].get_collection('plots'),
+				plots_col = dbs[0].get_collection('plot'),
 				keyboard_callback = ipo.is_ctrl_pressed
 			)
 		

@@ -80,7 +80,7 @@ class SVGLoader:
 		self._queries: list[SVGQuery] = []
 		self._plots: dict[StockId, SVGCollection] = defaultdict(SVGCollection)
 		self._debug = self.logger and self.logger.verbose > 1
-		self._plot_col = self._db.get_collection('plots')
+		self._plot_col = self._db.get_collection('plot')
 		
 		if queries:
 			for q in queries:
