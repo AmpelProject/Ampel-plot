@@ -11,7 +11,6 @@ from bson import ObjectId # type: ignore[import]
 from ampel.util.recursion import walk_and_process_dict
 from ampel.abstract.AbsUnitResultAdapter import AbsUnitResultAdapter
 from ampel.struct.UnitResult import UnitResult
-from ampel.view.T3Store import T3Store
 
 
 class AmpelPlotAdapter(AbsUnitResultAdapter):
