@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  20.08.2022
+# Last Modified Date:  27.08.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
@@ -32,8 +32,9 @@ from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
-from ampel.plot.util.transform import _svg_inkscape
+from ampel.plot.util.transform import _svg_inkscape, svg_to_png
 from ampel.mongo.utils import match_one_or_many
+from ampel.util.pretty import out_stack
 
 
 h = {
@@ -68,6 +69,7 @@ h = {
 	'job': '<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.',
 	'job-id': 'Matches plots created by specified job ids (-job arg will be ignored)',
 	'job-time-from': 'Restrict event collection search using provided timestamp\n(used automatically by ampel job ... -show-plots)',
+	'format': 'Export file format (svg, png, pdf, eps). Use png:150 to set custom DPI (default: 150)',
 	'verbose': 'increases verbosity',
 	'debug': 'debug'
 }
@@ -99,7 +101,7 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.req('config')
 		builder.req('out', 'export')
-		builder.opt('format', 'export', choices={'eps', 'pdf', 'svg'}, default='svg')
+		builder.opt('format', 'export', default='svg')
 		builder.req('oid', 'export', nargs='+')
 
 		builder.opt('limit', 'show', type=int)
@@ -177,6 +179,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.example('watch', '-db MyDB -col t3 -one-db -stack -png 200')
 		builder.example('export', '-one-db -db SIM -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291')
 		builder.example('export', '-one-db -db SIM -format pdf -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291 62fde88cf4880a864494b292')
+		builder.example('export', '-one-db -db SIM -format png:200 -out /Users/you/Documents/ -oid 62fde88cf4880a864494b295')
 		
 		self.parsers.update(
 			builder.get()
@@ -269,8 +272,22 @@ class PlotCommand(AbsCoreCommand):
 				.get_collection('plot') \
 				.find({'_id': match_one_or_many([ObjectId(el) for el in args['oid']])})
 
+			dpi = 0
+			fmode = 'w'
+			get_plot_name = lambda doc: doc['name']
+			if args['format'].startswith('png'):
+				dpi = 150
+				fmode = 'wb'
+				get_plot_name = lambda doc: doc['name'].replace('.svg', f'_{dpi}dpi.png')
+				if ':' in args['format']:
+					dpi = int(args['format'].split(':')[1])
+			elif args['format'] not in ('eps', 'pdf', 'svg'):
+				with out_stack():
+					raise ValueError("Option format must be one of: eps, pdf, svg, png")
+
 			i = 0
-			inkscape = args['format'] != 'svg'
+			inkscape = args['format'] in ('pdf', 'eps')
+			func = lambda x: svg_to_png(x, dpi=dpi) if dpi else lambda x: x
 			for doc in docs:
 				i += 1
 				if i == 1:
@@ -282,9 +299,9 @@ class PlotCommand(AbsCoreCommand):
 						ext = args['format']
 					)
 				else:
-					outname = os.path.join(args['out'], doc['name'])
-					with open(outname, 'w') as f:
-						f.write(SVGPlot(doc).get())
+					outname = os.path.join(args['out'], get_plot_name(doc))
+					with open(outname, fmode) as f:
+						f.write(func(SVGPlot(doc).get()))
 						print(outname)
 
 			if i == 0:
