@@ -215,13 +215,12 @@ class PlotCommand(AbsCoreCommand):
 
 		if db_prefixes:
 			for el in db_prefixes:
-				config._config['mongo']['prefix'] = el
 				dbs.append(
-					get_db(config, vault, require_existing_db=True, one_db = 'auto')
+					get_db(config, vault, require_existing_db=el, one_db = 'auto')
 				)
 		else:
 			dbs = [
-				get_db(config, vault, require_existing_db=True, one_db='auto')
+				get_db(config, vault, require_existing_db=el, one_db='auto')
 			]
 
 		run_ids = None
