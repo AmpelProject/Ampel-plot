@@ -64,7 +64,6 @@ h = {
 	'out': 'path to file (printed to stdout otherwise)',
 	'db': 'Database prefix. Multiple prefixes are supported (one query per db will be executed).\nIf set, "-mongo.prefix" value will be ignored',
 	'col': 'Collection name',
-	'one-db': 'Whether the target ampel DB was created with flag one-db',
 	'run-id': 'Matches plots created during specified runs (-job arg will be ignored)',
 	'job': '<path to job schema(s)>. Only plots created by the specified job will be loaded.\nOne-db and mongo.prefix will be set automatically.',
 	'job-id': 'Matches plots created by specified job ids (-job arg will be ignored)',
@@ -117,7 +116,6 @@ class PlotCommand(AbsCoreCommand):
 		builder.opt('scale', nargs='?', type=float, default=1.0)
 		builder.opt('max-size', nargs='?', type=int)
 		builder.opt('db', 'show|export|clipboard', type=str, nargs='+')
-		builder.opt('one-db', action='store_true')
 		builder.opt('job', 'show|watch|clipboard', type=str, nargs='+')
 		builder.opt('job-id', 'show|watch|clipboard', action=MaybeIntAction, nargs='+')
 		builder.opt('job-time-from', 'show', action=MaybeIntAction, nargs='?')
@@ -160,7 +158,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.arg('custom-match', group='match', sub_ops='show|watch', metavar='#', action=LoadJSONAction)
 
 		builder.example('show', '-stack -300 -t2')
-		builder.example('show', '-html -t3 -base-path body.plot -latest -db HelloAmpel -one-db')
+		builder.example('show', '-html -t3 -base-path body.plot -latest -db HelloAmpel')
 		builder.example('show', '-html -t2 -stock 123456 -db DB1 DB2')
 		builder.example('show', '-stack -t2 -png 300 -limit 10')
 		builder.example('show',
@@ -176,10 +174,10 @@ class PlotCommand(AbsCoreCommand):
 			'-unit T3CosmoDipole -latest -job DIPOLE.zhel.ztf225.yaml'
 		)
 		builder.example('clipboard', '-html')
-		builder.example('watch', '-db MyDB -col t3 -one-db -stack -png 200')
-		builder.example('export', '-one-db -db SIM -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291')
-		builder.example('export', '-one-db -db SIM -format pdf -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291 62fde88cf4880a864494b292')
-		builder.example('export', '-one-db -db SIM -format png:200 -out /Users/you/Documents/ -oid 62fde88cf4880a864494b295')
+		builder.example('watch', '-db MyDB -col t3 -stack -png 200')
+		builder.example('export', '-db SIM -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291')
+		builder.example('export', '-db SIM -format pdf -out /Users/you/Documents/ -oid 62fde88cf4880a864494b291 62fde88cf4880a864494b292')
+		builder.example('export', '-db SIM -format png:200 -out /Users/you/Documents/ -oid 62fde88cf4880a864494b295')
 		
 		self.parsers.update(
 			builder.get()
@@ -219,17 +217,11 @@ class PlotCommand(AbsCoreCommand):
 			for el in db_prefixes:
 				config._config['mongo']['prefix'] = el
 				dbs.append(
-					get_db(
-						config, vault, require_existing_db=True,
-						one_db=args.get('one_db', False)
-					)
+					get_db(config, vault, require_existing_db=True, one_db = 'auto')
 				)
 		else:
 			dbs = [
-				get_db(
-					config, vault, require_existing_db=True,
-					one_db=args.get('one_db', False)
-				)
+				get_db(config, vault, require_existing_db=True, one_db='auto')
 			]
 
 		run_ids = None
