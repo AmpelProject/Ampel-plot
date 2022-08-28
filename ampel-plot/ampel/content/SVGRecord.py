@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.02.2021
-# Last Modified Date:  23.08.2022
+# Last Modified Date:  28.08.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import TypedDict
@@ -21,3 +21,4 @@ class SVGRecord(TypedDict, total=False):
 	svg: bytes | str # bytes means compressed svg
 	svg_str: NotRequired[str]
 	oid: NotRequired[str]
+	run: NotRequired[int]
