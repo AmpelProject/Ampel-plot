@@ -25,25 +25,13 @@ def svg_to_png_b64(svg: str, dpi: int = 96, scale: float = 1.0) -> str:
 def svg_to_png_html(svg: str, dpi: int = 96, scale: float = 1.0) -> str:
 	return '<img class=mainimg src="data:image/png;base64,%s">' % svg_to_png_b64(svg, dpi, scale)
 
-def svg_to_eps(svg: str, outpath: str, fname: str, feedback: bool = True) -> None:
-	_svg_inkscape(svg, outpath, fname, 'eps', feedback)
+def svg_inkscape(svg: str, outname: str, feedback: bool = True) -> None:
 
-def svg_to_pdf(svg: str, outpath: str, fname: str, feedback: bool = True) -> None:
-	_svg_inkscape(svg, outpath, fname, 'pdf', feedback)
-
-def _svg_inkscape(
-	svg: str,
-	outpath: str,
-	fname: str,
-	ext: Literal['pdf', 'eps'],
-	feedback: bool = True
-) -> None:
 	import tempfile, os, subprocess
 	fp = tempfile.NamedTemporaryFile(delete=False)
 	tmp_name = fp.name
 	fp.write(bytes(svg, 'utf8'))
 	fp.close()
-	outname = os.path.join(outpath, fname) + '.' + ext
 	x = subprocess.Popen(
 		['inkscape', tmp_name, f'--export-filename={outname}']
 	)

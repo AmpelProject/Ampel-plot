@@ -9,6 +9,7 @@
 
 import os
 from typing import Any
+from pathlib import Path
 from bson import ObjectId # type: ignore
 from datetime import datetime
 from collections.abc import Sequence
@@ -32,7 +33,7 @@ from ampel.model.PlotBrowseOptions import PlotBrowseOptions
 from ampel.plot.util.clipboard import read_from_clipboard
 from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
-from ampel.plot.util.transform import _svg_inkscape, svg_to_png
+from ampel.plot.util.transform import svg_inkscape, svg_to_png
 from ampel.mongo.utils import match_one_or_many
 from ampel.util.pretty import out_stack
 
@@ -278,19 +279,20 @@ class PlotCommand(AbsCoreCommand):
 
 			i = 0
 			inkscape = args['format'] in ('pdf', 'eps')
-			func = lambda x: svg_to_png(x, dpi=dpi) if dpi else lambda x: x
+			func = (lambda x: svg_to_png(x, dpi=dpi)) if dpi else lambda x: x
 			for doc in docs:
 				i += 1
 				if i == 1:
 					print("Exporting:")
 				if inkscape:
-					_svg_inkscape(
-						SVGPlot(doc).get(), args['out'],
-						doc['name'].replace('.svg', ''),
-						ext = args['format']
+					svg_inkscape(
+						SVGPlot(doc).get(),
+						get_outpath(
+							args['out'], doc['name'][:-3] + args['format']
+						)
 					)
 				else:
-					outname = os.path.join(args['out'], get_plot_name(doc))
+					outname = get_outpath(args['out'], get_plot_name(doc))
 					with open(outname, fmode) as f:
 						f.write(func(SVGPlot(doc).get()))
 						print(outname)
@@ -432,3 +434,19 @@ class PlotCommand(AbsCoreCommand):
 
 		if i == 1:
 			AmpelLogger.get_logger().info('No plot matched')
+
+
+def get_outpath(base_path: str, filename: str) -> str:
+
+	outpath = os.path.join(base_path, filename)
+	if os.path.exists(outpath):
+		p = Path(outpath)
+		for i in range(1, 100, 1):
+			new_outname = os.path.join(p.parent, f'{p.stem}({i}){p.suffix}')
+			if not os.path.exists(new_outname):
+				return new_outname
+		else:
+			raise ValueError()
+
+	return outpath
+
