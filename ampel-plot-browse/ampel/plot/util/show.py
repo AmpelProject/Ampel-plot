@@ -59,13 +59,14 @@ def show_collection(
 	pbo: PlotBrowseOptions,
 	print_func: None | Callable = None,
 	temp_dir: bool = True,
-	run_id: None | int | list[int] = None
+	run_id: None | int | list[int] = None,
+	db_name: None | str = None
 ) -> None:
 	"""
 	:param temp_dir: True: folder in /tmp, False: folder in ampel app dir
 	"""
 
-	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png, run_id=run_id):
+	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png, run_id=run_id, db_name=db_name):
 
 		tmp_file = os.path.join(
 			_get_ampel_dir(temp_dir),

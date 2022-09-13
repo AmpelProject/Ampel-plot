@@ -427,7 +427,8 @@ class PlotCommand(AbsCoreCommand):
 							show_collection(
 								scol, pbo, print_func = print,
 								temp_dir = args['user_dir'],
-								run_id = args.get('run_id')
+								run_id = args.get('run_id'),
+								db_name = db_prefixes
 							)
 							scol = SVGCollection()
 				else:
@@ -438,7 +439,8 @@ class PlotCommand(AbsCoreCommand):
 		if stack:
 			show_collection(
 				scol, PlotBrowseOptions(**args), print_func = print,
-				temp_dir = args['user_dir'], run_id = args.get('run_id')
+				temp_dir = args['user_dir'], run_id = args.get('run_id'),
+				db_name = db_prefixes
 			)
 
 		if i == 1:

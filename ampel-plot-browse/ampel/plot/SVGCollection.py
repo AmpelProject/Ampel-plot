@@ -73,7 +73,8 @@ class SVGCollection:
 		flexbox_wrap: bool = True,
 		full_html: bool = True,
 		png_convert: None | int = None,
-		run_id: None | int | list[int] = None
+		run_id: None | int | list[int] = None,
+		db_name: None | str = None
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used
@@ -86,7 +87,10 @@ class SVGCollection:
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
 
 		if run_id:
-			html = html.replace("<!--run_id-->", f'Run {run_id} - ')
+			s = f'DB {db_name} - Run {run_id} - ' if db_name else f'Run {run_id} - '
+			html = html.replace("<!--run_id-->", s)
+		elif db_name:
+			html = html.replace("<!--run_id-->", f'DB {db_name} - ')
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
