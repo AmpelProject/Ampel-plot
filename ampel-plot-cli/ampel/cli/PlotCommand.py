@@ -36,6 +36,7 @@ from ampel.plot.util.show import show_collection, show_svg_plot
 from ampel.plot.util.transform import svg_inkscape, svg_to_png
 from ampel.mongo.utils import match_one_or_many
 from ampel.util.pretty import out_stack
+from ampel.util.collections import try_reduce
 
 
 h = {
@@ -428,7 +429,7 @@ class PlotCommand(AbsCoreCommand):
 								scol, pbo, print_func = print,
 								temp_dir = args['user_dir'],
 								run_id = args.get('run_id'),
-								db_name = db_prefixes
+								db_name = try_reduce(db_prefixes)
 							)
 							scol = SVGCollection()
 				else:
@@ -440,7 +441,7 @@ class PlotCommand(AbsCoreCommand):
 			show_collection(
 				scol, PlotBrowseOptions(**args), print_func = print,
 				temp_dir = args['user_dir'], run_id = args.get('run_id'),
-				db_name = db_prefixes
+				db_name = try_reduce(db_prefixes)
 			)
 
 		if i == 1:
