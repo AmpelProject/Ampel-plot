@@ -7,7 +7,7 @@
 # Last Modified Date:  15.05.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-import pkg_resources
+import pkg_resources # type: ignore[import]
 from multiprocessing import Pool
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord

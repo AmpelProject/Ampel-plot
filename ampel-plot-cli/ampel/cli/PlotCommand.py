@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  27.08.2022
+# Last Modified Date:  13.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
@@ -70,6 +70,7 @@ h = {
 	'job-id': 'Matches plots created by specified job ids (-job arg will be ignored)',
 	'job-time-from': 'Restrict event collection search using provided timestamp\n(used automatically by ampel job ... -show-plots)',
 	'format': 'Export file format (svg, png, pdf, eps). Use png:150 to set custom DPI (default: 150)',
+	'user-dir': 'create images in ampel app dir instead of temp dir (plot collections will be persistent accross os restarts)',
 	'verbose': 'increases verbosity',
 	'debug': 'debug'
 }
@@ -116,6 +117,7 @@ class PlotCommand(AbsCoreCommand):
 		builder.opt('latest', 'show', action='store_true')
 		builder.opt('scale', nargs='?', type=float, default=1.0)
 		builder.opt('max-size', nargs='?', type=int)
+		builder.opt('user-dir', 'show', action='store_false')
 		builder.opt('db', 'show|export|clipboard', type=str, nargs='+')
 		builder.opt('job', 'show|watch|clipboard', type=str, nargs='+')
 		builder.opt('job-id', 'show|watch|clipboard', action=MaybeIntAction, nargs='+')
@@ -422,7 +424,7 @@ class PlotCommand(AbsCoreCommand):
 							svg._record['title'] += f'\n<span style="color: steelblue">{db.prefix}</span>'
 						scol.add_svg_plot(svg)
 						if i % stack == 0:
-							show_collection(scol, pbo, print_func=print)
+							show_collection(scol, pbo, print_func=print, temp_dir=args['user_dir'])
 							scol = SVGCollection()
 				else:
 					for svg in v._svgs:
@@ -430,7 +432,10 @@ class PlotCommand(AbsCoreCommand):
 						show_svg_plot(svg, pbo)
 
 		if stack:
-			show_collection(scol, PlotBrowseOptions(**args), print_func=print)
+			show_collection(
+				scol, PlotBrowseOptions(**args),
+				print_func=print, temp_dir=args['user_dir']
+			)
 
 		if i == 1:
 			AmpelLogger.get_logger().info('No plot matched')
@@ -449,4 +454,3 @@ def get_outpath(base_path: str, filename: str) -> str:
 			raise ValueError()
 
 	return outpath
-

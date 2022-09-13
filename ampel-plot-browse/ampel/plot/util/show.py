@@ -4,11 +4,12 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                16.11.2021
-# Last Modified Date:  13.04.2022
+# Last Modified Date:  13.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
-from typing import TYPE_CHECKING
 import os, webbrowser, tempfile, hashlib
+from typing import TYPE_CHECKING
+from appdirs import user_data_dir # type: ignore[import]
 from collections.abc import Callable
 from ampel.plot.util.transform import svg_to_png
 from ampel.model.PlotBrowseOptions import PlotBrowseOptions
@@ -53,12 +54,20 @@ def show_svg_plot(svg: "SVGPlot", pbo: PlotBrowseOptions) -> None:
 	webbrowser.open('file://' + path)
 
 
-def show_collection(scol: "SVGCollection", pbo: PlotBrowseOptions, print_func: None | Callable = None) -> None:
+def show_collection(
+	scol: "SVGCollection",
+	pbo: PlotBrowseOptions,
+	print_func: None | Callable = None,
+	temp_dir: bool = True
+) -> None:
+	"""
+	:param temp_dir: True: folder in /tmp, False: folder in ampel app dir
+	"""
 
 	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png):
 
 		tmp_file = os.path.join(
-			_get_ampel_tmp_dir(),
+			_get_ampel_dir(temp_dir),
 			hashlib.md5(x.encode('utf8')).hexdigest() + ".html"
 		)
 
@@ -70,8 +79,15 @@ def show_collection(scol: "SVGCollection", pbo: PlotBrowseOptions, print_func: N
 		print_func("Empty collection: nothing to display") # type: ignore[operator]
 
 
-def _get_ampel_tmp_dir() -> str:
-	tmp_dir = os.path.join(tempfile.gettempdir(), "ampel")
-	if not os.path.exists(tmp_dir):
-		os.mkdir(tmp_dir)
-	return tmp_dir
+def _get_ampel_dir(temp_dir: bool = True) -> str:
+
+	if temp_dir:
+		base_path = os.path.join(tempfile.gettempdir(), "ampel")
+	else:
+		base_path = user_data_dir("ampel")
+
+	base_path = os.path.join(base_path, 'plots')
+	if not os.path.exists(base_path):
+		os.makedirs(base_path)
+
+	return base_path

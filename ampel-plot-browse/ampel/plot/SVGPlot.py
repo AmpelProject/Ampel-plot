@@ -47,7 +47,7 @@ class SVGPlot:
 
 
 	def get_oid(self) -> None | str:
-		return self._record['oid']
+		return self._record.get('oid')
 
 
 	def has_tags(self, tags: Sequence[Tag]) -> bool:
