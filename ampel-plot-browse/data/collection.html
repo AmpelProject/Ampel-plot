@@ -4,7 +4,7 @@
  - License:             BSD-3-Clause
  - Author:              valery brinnel <firstname.lastname@gmail.com>
  - Date:                Unspecified
- - Last Modified Date:  27.04.2022
+ - Last Modified Date:  13.09.2022
  - Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 -->
 
@@ -59,6 +59,13 @@
 			max-width: 90%;
 			max-height: 90%;
 		}
+		#leftinfo {
+			display: inline;
+			position: absolute;
+			left: 0px;
+			color: grey;
+			padding-left: 10px;
+		}
 	</style>
 </head>
 
@@ -78,7 +85,7 @@
 		<button id='btn_h3extra' onclick='toggle("h3extra")'>Extra</button>
 		<input id='padding' type='text' placeholder='padding' style='width: 60px'/>
 		<input id='maxwidth' type='range' min='1' max='800' value='400' style='vertical-align: middle'/>🔍
-		<div id='datetime' style='display: inline; position: absolute; left: 0px; color: grey; padding-left: 10px;'></div>
+		<div id='leftinfo'><!--run_id--></div>
 	</div>
 	</center>
 
@@ -86,7 +93,7 @@
 
 		function setup() {
 
-			document.querySelector('#datetime').innerHTML = new Date()
+			document.querySelector('#leftinfo').innerHTML += new Date()
 				.toISOString()
 				.replace('T', ' ')
 				.substr(0, 16);

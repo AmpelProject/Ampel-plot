@@ -424,7 +424,11 @@ class PlotCommand(AbsCoreCommand):
 							svg._record['title'] += f'\n<span style="color: steelblue">{db.prefix}</span>'
 						scol.add_svg_plot(svg)
 						if i % stack == 0:
-							show_collection(scol, pbo, print_func=print, temp_dir=args['user_dir'])
+							show_collection(
+								scol, pbo, print_func = print,
+								temp_dir = args['user_dir'],
+								run_id = args.get('run_id')
+							)
 							scol = SVGCollection()
 				else:
 					for svg in v._svgs:
@@ -433,8 +437,8 @@ class PlotCommand(AbsCoreCommand):
 
 		if stack:
 			show_collection(
-				scol, PlotBrowseOptions(**args),
-				print_func=print, temp_dir=args['user_dir']
+				scol, PlotBrowseOptions(**args), print_func = print,
+				temp_dir = args['user_dir'], run_id = args.get('run_id')
 			)
 
 		if i == 1:

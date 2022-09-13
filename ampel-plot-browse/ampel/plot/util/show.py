@@ -58,13 +58,14 @@ def show_collection(
 	scol: "SVGCollection",
 	pbo: PlotBrowseOptions,
 	print_func: None | Callable = None,
-	temp_dir: bool = True
+	temp_dir: bool = True,
+	run_id: None | int | list[int] = None
 ) -> None:
 	"""
 	:param temp_dir: True: folder in /tmp, False: folder in ampel app dir
 	"""
 
-	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png):
+	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png, run_id=run_id):
 
 		tmp_file = os.path.join(
 			_get_ampel_dir(temp_dir),

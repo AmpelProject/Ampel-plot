@@ -72,7 +72,8 @@ class SVGCollection:
 		hide_if_empty: bool = True,
 		flexbox_wrap: bool = True,
 		full_html: bool = True,
-		png_convert: None | int = None
+		png_convert: None | int = None,
+		run_id: None | int | list[int] = None
 	) -> str:
 		"""
 		:param scale: if None, native scaling is used
@@ -81,12 +82,11 @@ class SVGCollection:
 		if hide_if_empty and not self._svgs:
 			return ""
 
-		if full_html:
-			html = base_html
-		else:
-			html = ""
-
+		html = base_html if full_html else ""
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
+
+		if run_id:
+			html = html.replace("<!--run_id-->", f'Run {run_id} - ')
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
