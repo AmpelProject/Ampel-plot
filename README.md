@@ -23,4 +23,4 @@ Dependencies: *ampel-plot*, *ampel-core*
 
 # Ampel-plot-app
 
-A standalone GUI app providing similar functionality to `ampel plot read`
+A standalone GUI app providing similar functionality to `ampel plot clipboard`
