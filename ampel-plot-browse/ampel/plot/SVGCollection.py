@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  15.05.2022
+# Last Modified Date:  18.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import pkg_resources # type: ignore[import]
@@ -92,6 +92,9 @@ class SVGCollection:
 			html = html.replace("<!--title-->", s[:-3])
 		elif db_name:
 			html = html.replace("<!--run_id-->", f'{db_name} - ')
+			html = html.replace("<!--title-->", db_name)
+		else:
+			html = html.replace("<!--title-->", 'Ampel plots')
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
