@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.06.2019
-# Last Modified Date:  31.07.2022
+# Last Modified Date:  18.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Literal, Any
@@ -31,6 +31,7 @@ class SVGQuery:
 		job_sig: None | int | list[int] = None,
 		run_id: None | int | list[int] = None,
 		stock: OneOrMany[StockId] = None,
+		no_stock: OneOrMany[StockId] = None,
 		doc_tag: None | dict[
 			Literal['with', 'without'],
 			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
@@ -51,6 +52,9 @@ class SVGQuery:
 
 		if stock:
 			self.set_stock(stock)
+
+		if no_stock:
+			self.set_stock(stock, True)
 
 		if plot_tag:
 			self.set_plot_tag(plot_tag)
@@ -78,14 +82,16 @@ class SVGQuery:
 		return self._query
 
 
-	def set_stock(self, stock: OneOrMany[StockId]) -> None:
+	def set_stock(self, stock: OneOrMany[StockId], invert: bool = False) -> None:
 
 		if isinstance(stock, str) and "," in stock:
-			self._query['stock'] = {'$in': [int(el.strip()) for el in stock.split(",")]}
+			self._query['stock'] = {
+				'$nin' if invert else '$in': [int(el.strip()) for el in stock.split(",")]
+			}
 		elif isinstance(stock, (list, tuple)):
-			self._query['stock'] = {'$in': stock}
+			self._query['stock'] = {'$nin' if invert else '$in': stock}
 		else:
-			self._query['stock'] = stock
+			self._query['stock'] = {'$ne': stock} if invert else stock
 
 
 	def set_doc_tag(self,

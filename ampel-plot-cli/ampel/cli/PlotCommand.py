@@ -47,6 +47,7 @@ h = {
 	'config': 'path to an ampel config file (yaml/json)',
 	'secrets': 'path to a YAML secrets store in sops format',
 	'stock': 'stock id(s). Comma sperated values can be used (without space)',
+	'no-stock': 'exclude stock id(s). Comma sperated values can be used (without space)',
 	'base-path': 'default: body.data.plot',
 	'unit': 'docs will have to match the provided ampel unit name',
 	'limit': 'limit the number of *documents* (not plots) returned by the underlying DB query',
@@ -154,6 +155,7 @@ class PlotCommand(AbsCoreCommand):
 			help='Match only plots from plots collections'
 		)
 		builder.arg('stock', group='match', sub_ops='show|watch', action=MaybeIntAction, nargs='+')
+		builder.arg('no-stock', group='match', sub_ops='show|watch', action=MaybeIntAction, nargs='+')
 		builder.logic_args('channel', descr='Channel', group='match', sub_ops='show|watch')
 		builder.logic_args('with-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
 		builder.logic_args('without-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
@@ -373,6 +375,7 @@ class PlotCommand(AbsCoreCommand):
 						doc_tag = dtags,
 						unit = args.get('unit'),
 						stock = args.get('stock'),
+						no_stock = args.get('no_stock'),
 						job_sig = job_sig,
 						run_id = run_ids,
 						custom_match = args.get('custom_match')
