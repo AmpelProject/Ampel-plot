@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  13.09.2022
+# Last Modified Date:  29.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
@@ -35,6 +35,7 @@ from ampel.plot.util.watch import read_from_db
 from ampel.plot.util.show import show_collection, show_svg_plot
 from ampel.plot.util.transform import svg_inkscape, svg_to_png
 from ampel.mongo.utils import match_one_or_many
+from ampel.mongo.schema import apply_schema, apply_excl_schema
 from ampel.util.pretty import out_stack
 from ampel.util.collections import try_reduce
 
@@ -43,7 +44,7 @@ h = {
 	'show': 'Display ampel plots retrieved via DB query(ies)',
 	'clipboard': 'Monitor the clipboard for ampel plots and display them in browser',
 	'watch': 'Monitor a given collection for new ampel plots and display them in browser',
-	'export': 'Exports plots (matched by id) to EPS/PDF/SVG (EPS and PDF require inkscape)',
+	'export': 'Exports plots (matched by oid or run-id) to EPS/PDF/SVG (EPS and PDF require inkscape)',
 	'config': 'path to an ampel config file (yaml/json)',
 	'secrets': 'path to a YAML secrets store in sops format',
 	'stock': 'stock id(s). Comma sperated values can be used (without space)',
@@ -59,9 +60,8 @@ h = {
 	'without-plot-tag': 'exclude plots with tag',
 	'with-doc-tag': 'match plots embedded in doc with tag',
 	'without-doc-tag': 'exclude plots embedded in doc with tag',
+	'add-tags-to-filename': 'appends underline-joined lower case plot tags as filename suffix (if not already present in filename)',
 	'png': 'convert to png (from svg). Default: 96 DPI',
-	'scale': 'scale png size. Default: 1.0',
-	'max-size': 'max-inline-size value of each HTML div',
 	'html': 'html output format (includes plot titles)',
 	'stack': 'stack <n> images into one html structure (activates html option). Default: 100',
 	'out': 'path to file (printed to stdout otherwise)',
@@ -104,8 +104,8 @@ class PlotCommand(AbsCoreCommand):
 
 		builder.req('config')
 		builder.req('out', 'export')
-		builder.opt('format', 'export', default='svg')
-		builder.req('oid', 'export', nargs='+')
+		builder.req('db', 'watch', type=str, nargs='+')
+		builder.req('col', 'watch', type=str, nargs='?')
 
 		builder.opt('limit', 'show', type=int)
 		builder.opt('secrets')
@@ -113,19 +113,18 @@ class PlotCommand(AbsCoreCommand):
 		builder.opt('id-mapper', 'show', type=str)
 		builder.opt('base-path', 'show', type=str)
 		builder.opt('unit', 'show', type=str)
-		builder.opt('run-id', 'show', action=MaybeIntAction, nargs='+')
+		builder.opt('run-id', 'show|export', action=MaybeIntAction, nargs='+')
 		builder.opt('enforce-base-path', 'show', action='store_true')
 		builder.opt('last-body', 'show', action='store_true')
 		builder.opt('latest', 'show', action='store_true')
-		builder.opt('scale', nargs='?', type=float, default=1.0)
-		builder.opt('max-size', nargs='?', type=int)
 		builder.opt('user-dir', 'show', action='store_false')
 		builder.opt('db', 'show|export|clipboard', type=str, nargs='+')
 		builder.opt('job', 'show|watch|clipboard', type=str, nargs='+')
 		builder.opt('job-id', 'show|watch|clipboard', action=MaybeIntAction, nargs='+')
 		builder.opt('job-time-from', 'show', action=MaybeIntAction, nargs='?')
-		builder.req('db', 'watch', type=str, nargs='+')
-		builder.req('col', 'watch', type=str, nargs='?')
+		builder.opt('format', 'export', default='svg')
+		builder.opt('add-tags-to-filename', 'export', action='store_true')
+		builder.opt('oid', 'export', nargs='+')
 
 		# Optional mutually exclusive args
 		builder.xargs(
@@ -139,7 +138,7 @@ class PlotCommand(AbsCoreCommand):
 			action='store', metavar='#', const=100, nargs='?', type=int, default=0
 		)
 
-		builder.add_group('match', 'Plot selection arguments', sub_ops='show|watch')
+		builder.add_group('match', 'Plot selection arguments', sub_ops='show|watch|export')
 		for el in (0, 1, 2, 3):
 			builder.arg(
 				f'no-t{el}', group='match', sub_ops='show|watch',
@@ -159,10 +158,15 @@ class PlotCommand(AbsCoreCommand):
 		builder.logic_args('channel', descr='Channel', group='match', sub_ops='show|watch')
 		builder.logic_args('with-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
 		builder.logic_args('without-doc-tag', descr='Doc tag', group='match', sub_ops='show|watch', json=False)
-		builder.logic_args('with-plot-tag', descr='Plot tag', group='match', sub_ops='show|watch', json=False)
-		builder.logic_args('without-plot-tag', descr='Plot tag', group='match', sub_ops='show|watch', json=False)
+		builder.logic_args(
+			'with-plot-tag', descr='Plot tag', group='match',
+			sub_ops='show|watch|export', json=False
+		)
+		builder.logic_args(
+			'without-plot-tag', descr='Plot tag', group='match',
+			sub_ops='show|watch|export', json=False
+		)
 		builder.arg('custom-match', group='match', sub_ops='show|watch', metavar='#', action=LoadJSONAction)
-
 		builder.example('show', '-stack -300 -t2')
 		builder.example('show', '-html -t3 -base-path body.plot -latest -db HelloAmpel')
 		builder.example('show', '-html -t2 -stock 123456 -db DB1 DB2')
@@ -265,19 +269,32 @@ class PlotCommand(AbsCoreCommand):
 
 		if sub_op == 'export':
 
-			docs = dbs[0] \
-				.get_collection('plot') \
-				.find({'_id': match_one_or_many([ObjectId(el) for el in args['oid']])})
+			if args['oid']:
+				mcrit = {'_id': match_one_or_many([ObjectId(el) for el in args['oid']])}
+			elif args['run_id']:
+				mcrit = {'run': match_one_or_many([int(el) for el in args['run_id']])}
+			else:
+				raise ValueError("Paramter oid or run-id required")
 
+			for el in ('with_plot_tag', 'with_plot_tags_and', 'with_plot_tags_or'):
+				if args.get(el):
+					apply_schema(mcrit, 'tag', args.get(el)) # type: ignore
+					break
+
+			for el in ('without_plot_tag', 'without_plot_tags_and', 'without_plot_tags_or'):
+				if args.get(el):
+					apply_excl_schema(mcrit, 'tag', args.get(el)) # type: ignore
+					break
+
+			docs = dbs[0].get_collection('plot').find(mcrit)
 			dpi = 0
 			fmode = 'w'
-			get_plot_name = lambda doc: doc['name']
 			if args['format'].startswith('png'):
 				dpi = 150
 				fmode = 'wb'
-				get_plot_name = lambda doc: doc['name'].replace('.svg', f'_{dpi}dpi.png')
 				if ':' in args['format']:
 					dpi = int(args['format'].split(':')[1])
+					args['format'] = 'png'
 			elif args['format'] not in ('eps', 'pdf', 'svg'):
 				with out_stack():
 					raise ValueError("Option format must be one of: eps, pdf, svg, png")
@@ -286,6 +303,12 @@ class PlotCommand(AbsCoreCommand):
 			inkscape = args['format'] in ('pdf', 'eps')
 			func = (lambda x: svg_to_png(x, dpi=dpi)) if dpi else lambda x: x
 			for doc in docs:
+				name = doc['name'][:-4]
+				if args['add_tags_to_filename']:
+					if suffix := '_'.join([el.lower() for el in doc['tag'] if el.lower() not in name]):
+						name += '_' + suffix
+				if dpi:
+					name += f'_{dpi}dpi'
 				i += 1
 				if i == 1:
 					print("Exporting:")
@@ -293,11 +316,11 @@ class PlotCommand(AbsCoreCommand):
 					svg_inkscape(
 						SVGPlot(doc).get(),
 						get_outpath(
-							args['out'], doc['name'][:-3] + args['format']
+							args['out'], name + '.' + args['format']
 						)
 					)
 				else:
-					outname = get_outpath(args['out'], get_plot_name(doc))
+					outname = get_outpath(args['out'], name + '.' + args['format'])
 					with open(outname, fmode) as f:
 						f.write(func(SVGPlot(doc).get()))
 						print(outname)
