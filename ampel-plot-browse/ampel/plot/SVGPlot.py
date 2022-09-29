@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  20.04.2022
+# Last Modified Date:  26.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, html
@@ -30,7 +30,7 @@ class SVGPlot:
 
 		self._tags = content['tag']
 		self._title_left_padding = title_left_padding
-		self._doc_tags = doc_tags
+		self._doc_tags = sorted(doc_tags) if doc_tags else doc_tags
 		self._pngd: None | dict[tuple[float, int], str] = None
 
 
