@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  29.09.2022
+# Last Modified Date:  30.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
@@ -199,6 +199,12 @@ class PlotCommand(AbsCoreCommand):
 	# Mandatory implementation
 	def run(self, args: dict[str, Any], unknown_args: Sequence[str], sub_op: None | str = None) -> None:
 
+		try:
+			import sys, IPython # type: ignore
+			sys.breakpointhook = IPython.embed
+		except Exception:
+			pass
+
 		stack = args.get('stack')
 		limit = args.get('limit') or 0
 		db_prefixes = args.get('db')
@@ -248,11 +254,11 @@ class PlotCommand(AbsCoreCommand):
 					)
 				}
 
-				run_id = next(dbs[0].get_collection('event').find(mcrit), None)
+				event_doc = next(dbs[0].get_collection('event').find(mcrit), None)
 
 			else:
 
-				run_id = next(
+				event_doc = next(
 					dbs[0].get_collection('event') \
 						.find(mcrit) \
 						.sort('_id', -1) \
@@ -260,11 +266,11 @@ class PlotCommand(AbsCoreCommand):
 					None
 				)
 
-			if run_id is None:
+			if event_doc is None:
 				logger.info('No run found for specified job')
 				return
 
-			run_ids = run_id['run']
+			run_ids = event_doc['run']
 
 
 		if sub_op == 'export':
@@ -464,10 +470,32 @@ class PlotCommand(AbsCoreCommand):
 						show_svg_plot(svg, pbo)
 
 		if stack:
+
+			job_schema = None
+			if run_ids and isinstance(run_ids, int) or len(run_ids) == 1: # type: ignore
+				if event_doc := next(
+					dbs[0] \
+						.get_collection('event') \
+						.find({'run': run_ids if isinstance(run_ids, int) else run_ids[0]}), # type: ignore
+					None
+				):
+					job_id = event_doc['jobid']
+					if job_schema := next(dbs[0].get_collection('job').find({'_id': job_id}), None):
+						del job_schema['_id']
+						import yaml # type: ignore
+						from pygments import highlight # type: ignore
+						from pygments.lexers import YamlLexer # type: ignore
+						from pygments.formatters import HtmlFormatter # type: ignore
+						job_schema = highlight(
+							yaml.dump(job_schema, sort_keys=False, default_flow_style=None),
+							YamlLexer(),
+							HtmlFormatter(noclasses=True)
+						)
+
 			show_collection(
 				scol, PlotBrowseOptions(**args), print_func = print,
-				temp_dir = args['user_dir'], run_id = args.get('run_id'),
-				db_name = try_reduce(db_prefixes)
+				temp_dir = args['user_dir'], run_id = run_ids,
+				db_name = try_reduce(db_prefixes), job_schema = job_schema
 			)
 
 		if i == 1:

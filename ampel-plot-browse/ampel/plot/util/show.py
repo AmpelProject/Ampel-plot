@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                16.11.2021
-# Last Modified Date:  13.09.2022
+# Last Modified Date:  29.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, webbrowser, tempfile, hashlib
@@ -60,13 +60,17 @@ def show_collection(
 	print_func: None | Callable = None,
 	temp_dir: bool = True,
 	run_id: None | int | list[int] = None,
+	job_schema: None | str = None,
 	db_name: None | str = None
 ) -> None:
 	"""
 	:param temp_dir: True: folder in /tmp, False: folder in ampel app dir
 	"""
 
-	if x := scol._repr_html_(scale=pbo.scale, png_convert=pbo.png, run_id=run_id, db_name=db_name):
+	if x := scol._repr_html_(
+		scale = pbo.scale, png_convert = pbo.png,
+		run_id = run_id, job_schema = job_schema, db_name = db_name
+	):
 
 		tmp_file = os.path.join(
 			_get_ampel_dir(temp_dir),

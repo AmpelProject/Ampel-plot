@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  18.09.2022
+# Last Modified Date:  29.09.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import pkg_resources # type: ignore[import]
@@ -74,6 +74,7 @@ class SVGCollection:
 		full_html: bool = True,
 		png_convert: None | int = None,
 		run_id: None | int | list[int] = None,
+		job_schema: None | str = None,
 		db_name: None | str = None
 	) -> str:
 		"""
@@ -85,7 +86,6 @@ class SVGCollection:
 
 		html = base_html if full_html else ""
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
-
 		if run_id:
 			s = f'{db_name} - {run_id} - ' if db_name else f'{run_id} - '
 			html = html.replace("<!--run_id-->", s)
@@ -95,6 +95,9 @@ class SVGCollection:
 			html = html.replace("<!--title-->", db_name)
 		else:
 			html = html.replace("<!--title-->", 'Ampel plots')
+
+		if job_schema:
+			html = html.replace("<!--job_schema-->", job_schema)
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'

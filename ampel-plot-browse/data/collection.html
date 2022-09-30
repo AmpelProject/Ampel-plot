@@ -66,6 +66,9 @@
 			color: grey;
 			padding-left: 10px;
 		}
+		.highlight {
+			padding: 10px;
+		}
 	</style>
 </head>
 <title><!--title--></title>
@@ -84,10 +87,12 @@
 		<button id='btn_h3tags' onclick='toggle("h3tags")'>Tags</button>
 		<button id='btn_h3title' onclick='toggle("h3title")'>Titles</button>
 		<button id='btn_h3extra' onclick='toggle("h3extra")'>Extra</button>
+		<button id='btn_schema' onclick='toggle("schema")' style='display:none'>Schema</button>
 		<input id='padding' type='text' placeholder='padding' style='width: 60px'/>
 		<input id='maxwidth' type='range' min='1' max='800' value='400' style='vertical-align: middle'/>🔍
-		<div id='leftinfo'><!--run_id--></div>
+		<div id='leftinfo' class='hooverdiv'><!--run_id--></div>
 	</div>
+	<div class='schema' style='display:none;text-align:left;width:min-content;font-size:120%'><!--job_schema--></div>
 	</center>
 
 	<script>
@@ -98,6 +103,9 @@
 				.toISOString()
 				.replace('T', ' ')
 				.substr(0, 16);
+
+			if (document.querySelector('.schema').innerHTML[1] != '!')
+				document.querySelector('#btn_schema').style.display = 'inline';
 
 			val = document.querySelector('#maxwidth').value + 'px';
 			document.querySelectorAll('.mainimg').forEach(
