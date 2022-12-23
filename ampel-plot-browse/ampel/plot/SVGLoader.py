@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  14.05.2022
+# Last Modified Date:  23.12.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from bson import ObjectId # type: ignore[import]
@@ -80,7 +80,7 @@ class SVGLoader:
 		self._queries: list[SVGQuery] = []
 		self._plots: dict[StockId, SVGCollection] = defaultdict(SVGCollection)
 		self._debug = self.logger and self.logger.verbose > 1
-		self._plot_col = self._db.get_collection('plot')
+		self._plot_col = self._db.get_collection('plot', mode='r')
 		
 		if queries:
 			for q in queries:
@@ -103,16 +103,23 @@ class SVGLoader:
 
 		for q in self._queries:
 
+			mdb = self._db.get_collection(q.col, mode='r').database
+			if q.col not in mdb.list_collection_names():
+				if self._debug:
+					self.logger.debug(
+						f"Skipping non-existent collection '{q.col}' (db '{mdb._Database__name}')"
+					)
+				continue
+
 			if self._debug:
-				dbname = self._db.get_collection(q.col).database._Database__name
 				self.logger.debug(
-					f"Running query (db '{dbname}' - collection '{q.col}'): {q._query}"
+					f"Running query (db '{mdb._Database__name}' - collection '{q.col}'): {q._query}"
 				)
 
 			if self.latest_doc:
-				res = self._db.get_collection(q.col).find(q._query).sort("_id", -1).limit(1)
+				res = self._db.get_collection(q.col, mode='r').find(q._query).sort("_id", -1).limit(1)
 				if self._debug:
-					count = self._db.get_collection(q.col).count_documents(q._query)
+					count = self._db.get_collection(q.col, mode='r').count_documents(q._query)
 					if count:
 						self.logger.debug(f"{count} documents matched [loading only the latest]")
 					else:
