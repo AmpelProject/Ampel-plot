@@ -150,7 +150,7 @@ class PlotCommand(AbsCoreCommand):
 			)
 
 		builder.arg(
-			'plots-col', group='match', sub_ops='show|watch', action='store_true',
+			'plot-col', group='match', sub_ops='show|watch', action='store_true',
 			help='Match only plots from plots collections'
 		)
 		builder.arg('stock', group='match', sub_ops='show|watch', action=MaybeIntAction, nargs='+')
@@ -395,10 +395,10 @@ class PlotCommand(AbsCoreCommand):
 				latest_doc = args['latest']
 			)
 
-			if args['plots_col']:
+			if args['plot_col']:
 				loader.add_query(
 					SVGQuery(
-						col = 'plots',
+						col = 'plot',
 						path = '',
 						plot_tag = ptags,
 						doc_tag = dtags,
@@ -472,7 +472,7 @@ class PlotCommand(AbsCoreCommand):
 		if stack:
 
 			job_schema = None
-			if run_ids and isinstance(run_ids, int) or len(run_ids) == 1: # type: ignore
+			if run_ids and (isinstance(run_ids, int) or len(run_ids) == 1): # type: ignore
 				if event_doc := next(
 					dbs[0] \
 						.get_collection('event') \
