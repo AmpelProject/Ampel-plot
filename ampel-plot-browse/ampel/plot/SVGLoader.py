@@ -120,7 +120,8 @@ class SVGLoader:
 			elif self.limit:
 				res = self._db.get_collection(q.col).find(q._query).limit(self.limit)
 				if self._debug:
-					self.logger.debug(f"{res.count()} document(s) matched [{res.count(True)} with limit]")
+					res = list(res)
+					self.logger.debug(f"{len(res)} document(s) matched [with limit {self.limit}]")
 			else:
 				res = self._db.get_collection(q.col).find(q._query)
 
@@ -130,7 +131,7 @@ class SVGLoader:
 				if self._debug:
 					self.logger.debug(f"Parsing {el['_id']}")
 
-				if q.col == "plots":
+				if q.col == "plot":
 					self._plots[None].add_raw_db_dict(el) # type: ignore
 					continue
 
