@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.06.2019
-# Last Modified Date:  18.09.2022
+# Last Modified Date:  23.12.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 from typing import Literal, Any
@@ -30,8 +30,8 @@ class SVGQuery:
 		config: None | int = None,
 		job_sig: None | int | list[int] = None,
 		run_id: None | int | list[int] = None,
-		stock: OneOrMany[StockId] = None,
-		no_stock: OneOrMany[StockId] = None,
+		stock: None | OneOrMany[StockId] = None,
+		no_stock: None | OneOrMany[StockId] = None,
 		doc_tag: None | dict[
 			Literal['with', 'without'],
 			Tag | AllOf[Tag] | AnyOf[Tag] | OneOf[Tag]
@@ -54,7 +54,7 @@ class SVGQuery:
 			self.set_stock(stock)
 
 		if no_stock:
-			self.set_stock(stock, True)
+			self.set_stock(no_stock, True)
 
 		if plot_tag:
 			self.set_plot_tag(plot_tag)
