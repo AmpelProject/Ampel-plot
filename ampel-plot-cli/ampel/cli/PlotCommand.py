@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                15.03.2021
-# Last Modified Date:  30.09.2022
+# Last Modified Date:  23.12.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os
@@ -232,7 +232,7 @@ class PlotCommand(AbsCoreCommand):
 		if db_prefixes:
 			for el in db_prefixes:
 				dbs.append(
-					get_db(config, vault, require_existing_db=el, one_db = 'auto')
+					get_db(config, vault, require_existing_db=el, one_db='auto')
 				)
 		else:
 			dbs = [
@@ -254,12 +254,12 @@ class PlotCommand(AbsCoreCommand):
 					)
 				}
 
-				event_doc = next(dbs[0].get_collection('event').find(mcrit), None)
+				event_doc = next(dbs[0].get_collection('event', mode='r').find(mcrit), None)
 
 			else:
 
 				event_doc = next(
-					dbs[0].get_collection('event') \
+					dbs[0].get_collection('event', mode='r') \
 						.find(mcrit) \
 						.sort('_id', -1) \
 						.limit(1),
@@ -292,7 +292,7 @@ class PlotCommand(AbsCoreCommand):
 					apply_excl_schema(mcrit, 'tag', args.get(el)) # type: ignore
 					break
 
-			docs = dbs[0].get_collection('plot').find(mcrit)
+			docs = dbs[0].get_collection('plot', mode='r').find(mcrit)
 			dpi = 0
 			fmode = 'w'
 			if args['format'].startswith('png'):
@@ -341,7 +341,7 @@ class PlotCommand(AbsCoreCommand):
 			ipo = InlinePynput()
 			read_from_clipboard(
 				PlotBrowseOptions(**args),
-				plots_col = dbs[0].get_collection('plot'),
+				plots_col = dbs[0].get_collection('plot', mode='r'),
 				keyboard_callback = ipo.is_ctrl_pressed
 			)
 		
@@ -350,7 +350,7 @@ class PlotCommand(AbsCoreCommand):
 
 		if sub_op == 'watch':
 			read_from_db(
-				dbs[0].get_collection(args['col']),
+				dbs[0].get_collection(args['col'], mode='r'),
 				PlotBrowseOptions(**args)
 			)
 
@@ -475,12 +475,12 @@ class PlotCommand(AbsCoreCommand):
 			if run_ids and (isinstance(run_ids, int) or len(run_ids) == 1): # type: ignore
 				if event_doc := next(
 					dbs[0] \
-						.get_collection('event') \
+						.get_collection('event', mode='r') \
 						.find({'run': run_ids if isinstance(run_ids, int) else run_ids[0]}), # type: ignore
 					None
 				):
 					job_id = event_doc['jobid']
-					if job_schema := next(dbs[0].get_collection('job').find({'_id': job_id}), None):
+					if job_schema := next(dbs[0].get_collection('job', mode='r').find({'_id': job_id}), None):
 						del job_schema['_id']
 						import yaml # type: ignore
 						from pygments import highlight # type: ignore
