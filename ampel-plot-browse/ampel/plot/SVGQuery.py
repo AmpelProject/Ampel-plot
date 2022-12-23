@@ -19,12 +19,12 @@ from ampel.mongo.utils import match_one_or_many
 class SVGQuery:
 
 	_query: dict[str, Any]
-	col: Literal["t0", "t1", "t2", "t3", "plots"]
+	col: Literal["t0", "t1", "t2", "t3", "plot"]
 	path: str
 	tags: None | OneOrMany[Tag]
 
 	def __init__(self,
-		col: Literal["t0", "t1", "t2", "t3", "plots"],
+		col: Literal["t0", "t1", "t2", "t3", "plot"],
 		path: str = 'body.data.plot',
 		unit: None | UnitId = None,
 		config: None | int = None,
@@ -72,7 +72,7 @@ class SVGQuery:
 			self._query['meta.jobid'] = match_one_or_many(job_sig)
 
 		if run_id:
-			self._query['meta.run'] = match_one_or_many(run_id)
+			self._query['run' if col == 'plot' else 'meta.run'] = match_one_or_many(run_id)
 
 		if custom_match:
 			self._query.update(custom_match)
