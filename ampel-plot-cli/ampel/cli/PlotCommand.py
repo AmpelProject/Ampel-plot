@@ -280,7 +280,7 @@ class PlotCommand(AbsCoreCommand):
 			elif args['run_id']:
 				mcrit = {'run': match_one_or_many([int(el) for el in args['run_id']])}
 			else:
-				raise ValueError("Paramter oid or run-id required")
+				raise ValueError("Parameter oid or run-id required")
 
 			for el in ('with_plot_tag', 'with_plot_tags_and', 'with_plot_tags_or'):
 				if args.get(el):
@@ -481,16 +481,8 @@ class PlotCommand(AbsCoreCommand):
 				):
 					job_id = event_doc['jobid']
 					if job_schema := next(dbs[0].get_collection('job', mode='r').find({'_id': job_id}), None):
+						logger.info(f'Auto-including job schema associated with run {run_ids}')
 						del job_schema['_id']
-						import yaml # type: ignore
-						from pygments import highlight # type: ignore
-						from pygments.lexers import YamlLexer # type: ignore
-						from pygments.formatters import HtmlFormatter # type: ignore
-						job_schema = highlight(
-							yaml.dump(job_schema, sort_keys=False, default_flow_style=None),
-							YamlLexer(),
-							HtmlFormatter(noclasses=True)
-						)
 
 			show_collection(
 				scol, PlotBrowseOptions(**args), print_func = print,
