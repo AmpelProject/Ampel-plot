@@ -4,29 +4,34 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  29.09.2022
+# Last Modified Date:  28.12.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import pkg_resources # type: ignore[import]
+from typing import Any
 from multiprocessing import Pool
 from ampel.plot.SVGPlot import SVGPlot
 from ampel.content.SVGRecord import SVGRecord
 from ampel.plot.util.compression import decompress_svg_dict
 from ampel.plot.util.transform import svg_to_png_html
 
-base_html = "\n".join(
-	pkg_resources \
-		.get_distribution("ampel-plot-browse") \
-		.get_resource_string(__name__, "data/collection.html") \
-		.decode('utf-8') \
-		.split("\n")[10:] # skip header
-)
 
+def _load_html() -> str:
+
+	resources_bytes = pkg_resources \
+		.get_distribution("ampel-plot-browse") \
+		.get_resource_string(__name__, "data/collection.html") # type: ignore[attr-defined]
+
+	# https://mail.python.org/pipermail/distutils-sig/2011-March/017495.html
+	return resources_bytes.decode('utf-8').split("\n")[10:] # Skip header
+
+
+base_html = _load_html()
 
 class SVGCollection:
 
-	def __init__(self, title: str = None) -> None:
-		""" :param title: title of this collection """
+	def __init__(self, title: None | str = None) -> None:
+		""" :param title: collection title """
 		self._svgs: list[SVGPlot] = []
 		self._col_title = title
 
@@ -74,7 +79,7 @@ class SVGCollection:
 		full_html: bool = True,
 		png_convert: None | int = None,
 		run_id: None | int | list[int] = None,
-		job_schema: None | str = None,
+		job_schema: None | dict[str, Any] = None,
 		db_name: None | str = None
 	) -> str:
 		"""
@@ -97,7 +102,18 @@ class SVGCollection:
 			html = html.replace("<!--title-->", 'Ampel plots')
 
 		if job_schema:
-			html = html.replace("<!--job_schema-->", job_schema)
+			import yaml # type: ignore
+			from pygments import highlight # type: ignore
+			from pygments.lexers import YamlLexer # type: ignore
+			from pygments.formatters import HtmlFormatter # type: ignore
+			html = html.replace(
+				"<!--job_schema-->",
+				highlight(
+					yaml.dump(job_schema, sort_keys=False, default_flow_style=None),
+					YamlLexer(),
+					HtmlFormatter(noclasses=True)
+				)
+			)
 
 		if show_col_title and self._col_title:
 			html += '<h1 style="color: darkred">' + self._col_title.replace("\n", "<br/>") + '</h1>'
