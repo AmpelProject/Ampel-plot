@@ -10,10 +10,12 @@ Dependencies: *ampel-interface*, *matplotlib*
 # Ampel-plot-browse
 
 provides:
-- tools for visualizing plots
-- methods for manipulating SVG structures (rescaling, conversions)
+- tools for loading plots from DB (either using queries or by monitoring changes to given databases)
+- a way to automatically load plots from clipboard (handy in combination with Robot3T for example)
+- options for visualizing plots, in particular, plots can be stacked into a HTML structure displayable by web browsers
+- methods for manipulating SVG structures (rescaling, format conversions)
 
-Dependencies: *ampel-plot*, *pyvips*, *clipboard*, *pynput*
+Dependencies: *ampel-plot*, *pyvips*, *clipboard*, *pynput*, , *pygments*
 
 # Ampel-plot-cli
 
@@ -23,4 +25,4 @@ Dependencies: *ampel-plot*, *ampel-core*
 
 # Ampel-plot-app
 
-A standalone GUI app providing similar functionality to `ampel plot clipboard`
+A standalone GUI app providing similar functionality to `ampel plot clipboard`. It needs an update.
