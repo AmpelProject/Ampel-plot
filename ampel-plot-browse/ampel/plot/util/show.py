@@ -4,11 +4,11 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                16.11.2021
-# Last Modified Date:  29.09.2022
+# Last Modified Date:  28.12.2022
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, webbrowser, tempfile, hashlib
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from appdirs import user_data_dir # type: ignore[import]
 from collections.abc import Callable
 from ampel.plot.util.transform import svg_to_png
@@ -60,7 +60,7 @@ def show_collection(
 	print_func: None | Callable = None,
 	temp_dir: bool = True,
 	run_id: None | int | list[int] = None,
-	job_schema: None | str = None,
+	job_schema: None | dict[str, Any] = None,
 	db_name: None | str = None
 ) -> None:
 	"""
@@ -82,7 +82,7 @@ def show_collection(
 
 		webbrowser.open('file://' + tmp_file)
 	elif print_func:
-		print_func("Empty collection: nothing to display") # type: ignore[operator]
+		print_func("Empty plot collection: nothing to display") # type: ignore[operator]
 
 
 def _get_ampel_dir(temp_dir: bool = True) -> str:
