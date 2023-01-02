@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                13.06.2019
-# Last Modified Date:  28.12.2022
+# Last Modified Date:  02.01.2023
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import pkg_resources # type: ignore[import]
@@ -23,7 +23,7 @@ def _load_html() -> str:
 		.get_resource_string(__name__, "data/collection.html") # type: ignore[attr-defined]
 
 	# https://mail.python.org/pipermail/distutils-sig/2011-March/017495.html
-	return resources_bytes.decode('utf-8').split("\n")[10:] # Skip header
+	return '\n'.join(resources_bytes.decode('utf-8').split("\n")[10:]) # Skip header
 
 
 base_html = _load_html()
