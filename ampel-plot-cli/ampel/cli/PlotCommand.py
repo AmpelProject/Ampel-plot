@@ -223,6 +223,8 @@ class PlotCommand(AbsCoreCommand):
 			job_sig = args['job_id']
 		elif args.get('job'):
 			job, job_sig = JobCommand.get_job_schema(args['job'], logger)
+			if job is None:
+				return
 			if job.mongo and job.mongo.prefix:
 				db_prefixes = [job.mongo.prefix]
 			args['one_db'] = True
