@@ -80,7 +80,7 @@
 	</div>
 
 	<center>
-	<div id='tagfilter' style='display: block'>
+	<div style='display: block'>
 		<button onclick='showAll()'>↻</button>
 		<input id='tags' type='text' placeholder='tag1 tag2|tag3' style='width: 150px'/>
 		<button onclick='toggleDivs()'>Toggle</button>
@@ -92,10 +92,14 @@
 		<input id='maxwidth' type='range' min='1' max='800' value='400' style='vertical-align: middle'/>🔍
 		<div id='leftinfo' class='hooverdiv'><!--run_id--></div>
 	</div>
+	<div id='tagfilter' class='h3tags' style='display:none;'></div>
 	<div class='schema' style='display:none;text-align:left;width:min-content;font-size:120%;border: 1px solid black;'><!--job_schema--></div>
 	</center>
 
 	<script>
+
+		var allTagsList = [];
+		var plotsCount = 0;
 
 		function setup() {
 
@@ -151,16 +155,52 @@
 
 			document.querySelectorAll('.h3tags').forEach(
 				function(h3t) {
+					if (h3t.textContent == "")
+						return;
 					h3t.style.maxInlineSize = val;
 					arr = JSON.parse(h3t.textContent.replaceAll('\'', '"'));
-					h3t.innerHTML = ""
+					h3t.innerHTML = "";
+					plotsCount++;
 					for (i=0; i<arr.length; i++) {
+						allTagsList.push(arr[i]);
 						h3t.appendChild(
 							document.createTextNode(arr[i] + " ")
 						);
 					}
 				}
 			)
+
+			s = new Set(allTagsList);
+			nonUniqTags = [];
+			tfdiv = document.querySelector('#tagfilter');
+			for (let el of s) {
+				if (allTagsList.filter(x => x == el).length != plotsCount) {
+					var lb = document.createElement('label');
+					lb.style.cursor = "pointer";
+					var cb = document.createElement('input');
+					cb.type = 'checkbox';
+					cb.checked = true;
+					cb.name = el;
+					cb.value = el;
+					cb.onclick = function(event){
+						document.querySelectorAll('.PLOT').forEach(
+							function(plot) {
+								if (plot.classList.contains(event.target.value)) {
+									if (event.target.checked) {
+										plot.style.display = 'block';
+									} else {
+										plot.style.display = 'none';
+									}
+								}
+							}
+						);
+					};
+					lb.appendChild(cb);
+					lb.appendChild(document.createTextNode(el));
+					tfdiv.appendChild(lb);
+				}
+			}
+
 		}
 
 		function setMaxInlineSize() {
@@ -268,6 +308,10 @@
 						center.style.display = '';
 				}
 			);
+			var cbs = document.querySelectorAll("input[type='checkbox']");
+			for(var i = 0; i < cbs.length; i++) {
+				cbs[i].checked = true;
+			}
 		}
 
 		function setPadding() {
