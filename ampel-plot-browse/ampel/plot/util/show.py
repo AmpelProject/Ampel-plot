@@ -4,7 +4,7 @@
 # License:             BSD-3-Clause
 # Author:              valery brinnel <firstname.lastname@gmail.com>
 # Date:                16.11.2021
-# Last Modified Date:  28.12.2022
+# Last Modified Date:  13.01.2023
 # Last Modified By:    valery brinnel <firstname.lastname@gmail.com>
 
 import os, webbrowser, tempfile, hashlib
@@ -74,7 +74,8 @@ def show_collection(
 
 		tmp_file = os.path.join(
 			_get_ampel_dir(temp_dir),
-			hashlib.md5(x.encode('utf8')).hexdigest() + ".html"
+			f"{db_name}_run_{run_id}.html" if (db_name and run_id)
+			else hashlib.md5(x.encode('utf8')).hexdigest() + ".html"
 		)
 
 		with open(tmp_file, 'w', encoding='utf-8') as fh:
