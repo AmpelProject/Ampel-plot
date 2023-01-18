@@ -92,9 +92,9 @@ class SVGCollection:
 		html = base_html if full_html else ""
 		# html += '<hr style="width:100%; border: 2px solid;"/>'
 		if run_id:
-			s = f'{db_name} - {run_id} - ' if db_name else f'{run_id} - '
+			s = f'{db_name} - {run_id}<br/>' if db_name else f'{run_id} - '
 			html = html.replace("<!--run_id-->", s)
-			html = html.replace("<!--title-->", s[:-3])
+			html = html.replace("<!--title-->", s[:-5])
 		elif db_name:
 			html = html.replace("<!--run_id-->", f'{db_name} - ')
 			html = html.replace("<!--title-->", db_name)
