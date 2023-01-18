@@ -12,7 +12,7 @@ from pathlib import Path
 
 setup(
 	name='ampel-plot',
-	version='0.8.3',
+	version='0.8.3-1',
 	long_description=(Path(__file__).parent / "README.md").read_text(),
 	long_description_content_type="text/markdown",
 	packages=find_namespace_packages(),
