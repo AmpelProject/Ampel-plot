@@ -1,4 +1,12 @@
-# Ampel-plot
+<img align="left" src="https://user-images.githubusercontent.com/17532220/213290006-0ee9291e-9018-4bc9-aae9-5bcae3835d90.png" width="150" height="150"/>
+<br>
+
+# AMPEL-plot
+<br><br>
+
+
+
+## Ampel-plot
 
 provides:
 - a standardized document structure called `SVGRecord` for saving plots into the ampel DB
@@ -7,7 +15,7 @@ provides:
 
 Dependencies: *ampel-interface*, *matplotlib*
 
-# Ampel-plot-browse
+## Ampel-plot-browse
 
 provides:
 - tools for loading plots from DB (either using queries or by monitoring changes to given databases)
@@ -17,12 +25,12 @@ provides:
 
 Dependencies: *ampel-plot*, *pyvips*, *clipboard*, *pynput*, , *pygments*
 
-# Ampel-plot-cli
+## Ampel-plot-cli
 
 makes the ampel CLI command `ampel plot` available which allows to fetch and render plots from DB
 
 Dependencies: *ampel-plot*, *ampel-core*
 
-# Ampel-plot-app
+## Ampel-plot-app
 
 A standalone GUI app providing similar functionality to `ampel plot clipboard`. It needs an update.
