@@ -13,7 +13,7 @@ from ampel.types import UBson
 from ampel.struct.UnitResult import UnitResult
 from ampel.struct.T3Store import T3Store
 from ampel.abstract.AbsT3PlainUnit import AbsT3PlainUnit
-from ampel.model.PlotProperties import PlotProperties
+from ampel.model.PlotProperties import FormatModel, PlotProperties
 from ampel.plot.create import create_plot_record
 
 
@@ -21,14 +21,14 @@ class T3DemoSavePlot(AbsT3PlainUnit):
 
 	plot: PlotProperties = PlotProperties(
 		tags = ["DEMO_PLOT"],
-		file_name = {
-			"format_str": "plot_%s_%s.svg",
-			"arg_keys": ["first_suffix", "second_suffix"]
-		},
-		title = {
-			"format_str": "A title - %s\n%s",
-			"arg_keys": ["first_arg", "second_arg"]
-		}
+		file_name = FormatModel(
+			format_str = "plot_%s_%s.svg",
+			arg_keys = ["first_suffix", "second_suffix"]
+		),
+		title = FormatModel(
+			format_str = "A title - %s\n%s",
+			arg_keys = ["first_arg", "second_arg"]
+		)
 	)
 
 
