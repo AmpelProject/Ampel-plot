@@ -95,19 +95,19 @@ class PlotProperties(AmpelBaseModel):
 	"""
 
 	file_name: FormatModel
-	title: None | FormatModel
-	fig_include_title: None | bool
-	fig_text: None | FormatModel # for matplotlib
-	tags: None | Tag | list[Tag]
-	width: None | int
-	height: None | int
-	compression_behavior: None | int
+	title: None | FormatModel = None
+	fig_include_title: None | bool = None
+	fig_text: None | FormatModel = None # for matplotlib
+	tags: None | Tag | list[Tag] = None
+	width: None | int = None
+	height: None | int = None
+	compression_behavior: None | int = None
 	compression_alg: TCompression = "ZIP_BZIP2"
 	compression_level: int = 9
 	detached: bool = True
-	id_mapper: None | str | type[AbsIdMapper]
-	disk_save: None | str # Local folder path
-	mpl_kwargs: None | dict[str, Any]
+	id_mapper: None | str | type[AbsIdMapper] = None
+	disk_save: None | str = None # Local folder path
+	mpl_kwargs: None | dict[str, Any] = None
 
 
 	# TODO: implement other validators ?:
